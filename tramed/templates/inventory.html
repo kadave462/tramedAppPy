@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Inventory — Pharmacie Tramed{% endblock %}
+{% block page_title %}Inventory{% endblock %}
+
+{% block content %}
+
+<!-- Filters -->
+<div class="bg-white rounded-xl border border-gray-200 p-4 mb-6 flex flex-wrap gap-3 items-center">
+  <form method="get" class="flex flex-wrap gap-3 flex-1 items-center">
+    <input type="text" name="search" value="{{ search }}" placeholder="Search product..."
+      class="border border-gray-200 rounded-lg px-3 py-2 text-sm w-56 focus:outline-none focus:ring-2 focus:ring-brand-500" />
+    <select name="category"
+      class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+      <option value="">All Categories</option>
+      {% for cat in categories %}
+      <option value="{{ cat }}" {% if cat == selected_category %}selected{% endif %}>{{ cat }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit"
+      class="bg-brand-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-brand-700 transition">Filter</button>
+    {% if search or selected_category %}
+    <a href="/inventory" class="text-sm text-gray-400 hover:text-gray-600">Clear</a>
+    {% endif %}
+  </form>
+  <div class="text-sm text-gray-400">{{ products|length }} products</div>
+</div>
+
+<!-- Table -->
+<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 border-b border-gray-100">
+      <tr class="text-xs text-gray-500 uppercase font-medium">
+        <th class="text-left px-5 py-3">Product</th>
+        <th class="text-left px-4 py-3">Category</th>
+        <th class="text-right px-4 py-3">Sell Price</th>
+        <th class="text-right px-4 py-3">Cost</th>
+        <th class="text-right px-4 py-3">Margin</th>
+        <th class="text-right px-4 py-3">In Stock</th>
+        <th class="text-right px-4 py-3">Min Level</th>
+        <th class="text-left px-4 py-3">Supplier</th>
+        <th class="text-center px-4 py-3">Status</th>
+        <th class="px-4 py-3"></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-50">
+      {% for p in products %}
+      <tr class="hover:bg-gray-50 transition" id="row-{{ p.id }}">
+        <td class="px-5 py-3 font-medium text-gray-800">{{ p.name }}</td>
+        <td class="px-4 py-3 text-gray-500">
+          <span class="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">{{ p.category }}</span>
+        </td>
+        <td class="px-4 py-3 text-right font-medium">{{ "{:,}".format(p.unit_price|int) }}</td>
+        <td class="px-4 py-3 text-right text-gray-500">{{ "{:,}".format(p.cost_price|int) }}</td>
+        <td class="px-4 py-3 text-right
+          {% if p.margin_percent >= 40 %}text-green-600{% elif p.margin_percent >= 25 %}text-yellow-600{% else %}text-red-500{% endif %}
+          font-medium">
+          {{ p.margin_percent }}%
+        </td>
+        <td class="px-4 py-3 text-right font-semibold
+          {% if p.stock_quantity == 0 %}text-red-600{% elif p.is_low_stock %}text-amber-600{% else %}text-gray-800{% endif %}">
+          <span id="qty-{{ p.id }}">{{ p.stock_quantity }}</span>
+        </td>
+        <td class="px-4 py-3 text-right text-gray-400">{{ p.min_stock_level }}</td>
+        <td class="px-4 py-3 text-gray-500 text-xs">{{ p.supplier.name if p.supplier else '—' }}</td>
+        <td class="px-4 py-3 text-center">
+          {% if p.stock_quantity == 0 %}
+            <span class="bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full font-medium">Out of Stock</span>
+          {% elif p.is_low_stock %}
+            <span class="bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-full font-medium">Low Stock</span>
+          {% else %}
+            <span class="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full font-medium">OK</span>
+          {% endif %}
+        </td>
+        <td class="px-4 py-3">
+          <button onclick="openStockModal({{ p.id }}, '{{ p.name|replace("'","\\'")|replace('"','\\"') }}', {{ p.stock_quantity }})"
+            class="text-xs text-brand-600 hover:text-brand-800 font-medium">Update Stock</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Stock update modal -->
+<div id="stockModal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+  <div class="bg-white rounded-xl shadow-xl p-6 w-80">
+    <h3 class="font-semibold text-gray-800 mb-1">Update Stock</h3>
+    <p id="modalProductName" class="text-sm text-gray-500 mb-4"></p>
+    <label class="block text-xs font-medium text-gray-500 mb-1">New Quantity</label>
+    <input id="modalQtyInput" type="number" min="0"
+      class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 mb-4" />
+    <div class="flex gap-3">
+      <button onclick="saveStock()"
+        class="flex-1 bg-brand-600 text-white text-sm py-2 rounded-lg hover:bg-brand-700 transition">Save</button>
+      <button onclick="closeModal()"
+        class="flex-1 border border-gray-200 text-sm py-2 rounded-lg hover:bg-gray-50 transition">Cancel</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  let activeProductId = null;
+
+  function openStockModal(id, name, qty) {
+    activeProductId = id;
+    document.getElementById('modalProductName').textContent = name;
+    document.getElementById('modalQtyInput').value = qty;
+    document.getElementById('stockModal').classList.remove('hidden');
+    document.getElementById('modalQtyInput').focus();
+  }
+
+  function closeModal() {
+    document.getElementById('stockModal').classList.add('hidden');
+    activeProductId = null;
+  }
+
+  async function saveStock() {
+    const qty = parseInt(document.getElementById('modalQtyInput').value);
+    if (isNaN(qty) || qty < 0) return;
+    const res = await fetch('/api/stock-update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: activeProductId, quantity: qty })
+    });
+    if (res.ok) {
+      document.getElementById(`qty-${activeProductId}`).textContent = qty;
+      closeModal();
+    }
+  }
+
+  document.getElementById('modalQtyInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') saveStock();
+    if (e.key === 'Escape') closeModal();
+  });
+
+  document.getElementById('stockModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('stockModal')) closeModal();
+  });
+</script>
+{% endblock %}

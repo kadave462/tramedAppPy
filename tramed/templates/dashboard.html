@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Pharmacie Tramed{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+
+<!-- Summary cards -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+
+  <!-- Today's revenue -->
+  <div class="bg-white rounded-xl border border-gray-200 p-5">
+    <div class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Today's Revenue</div>
+    <div class="text-2xl font-bold text-gray-900">{{ fmt(today_rev) }}</div>
+    <div class="mt-1 text-xs {% if rev_change >= 0 %}text-green-600{% else %}text-red-500{% endif %}">
+      {% if rev_change >= 0 %}▲{% else %}▼{% endif %}
+      {{ rev_change | abs }}% vs yesterday
+    </div>
+  </div>
+
+  <!-- Today's sales count -->
+  <div class="bg-white rounded-xl border border-gray-200 p-5">
+    <div class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Sales Today</div>
+    <div class="text-2xl font-bold text-gray-900">{{ today_sales }}</div>
+    <div class="mt-1 text-xs text-gray-400">transactions</div>
+  </div>
+
+  <!-- This week -->
+  <div class="bg-white rounded-xl border border-gray-200 p-5">
+    <div class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">This Week</div>
+    <div class="text-2xl font-bold text-gray-900">{{ fmt(week_rev) }}</div>
+    <div class="mt-1 text-xs text-gray-400">last 7 days</div>
+  </div>
+
+  <!-- This month -->
+  <div class="bg-white rounded-xl border border-gray-200 p-5">
+    <div class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">This Month</div>
+    <div class="text-2xl font-bold text-gray-900">{{ fmt(month_rev) }}</div>
+    <div class="mt-1 text-xs text-gray-400">month to date</div>
+  </div>
+
+</div>
+
+<!-- Charts row -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-8">
+
+  <!-- Revenue trend (30 days) — takes 2/3 width -->
+  <div class="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-5">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-sm font-semibold text-gray-700">Revenue Trend</h2>
+      <div class="flex gap-2">
+        <button onclick="loadChart(7)" id="btn7"
+          class="chart-btn text-xs px-3 py-1 rounded-full border border-gray-200 hover:bg-gray-100">7d</button>
+        <button onclick="loadChart(30)" id="btn30"
+          class="chart-btn text-xs px-3 py-1 rounded-full bg-brand-600 text-white">30d</button>
+        <button onclick="loadChart(90)" id="btn90"
+          class="chart-btn text-xs px-3 py-1 rounded-full border border-gray-200 hover:bg-gray-100">90d</button>
+      </div>
+    </div>
+    <canvas id="revenueChart" height="90"></canvas>
+  </div>
+
+  <!-- Category breakdown -->
+  <div class="bg-white rounded-xl border border-gray-200 p-5">
+    <h2 class="text-sm font-semibold text-gray-700 mb-4">Sales by Category (30d)</h2>
+    <canvas id="categoryChart" height="180"></canvas>
+  </div>
+
+</div>
+
+<!-- Bottom row: low stock + top products -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+  <!-- Low stock alerts -->
+  <div class="bg-white rounded-xl border border-gray-200 p-5">
+    <div class="flex items-center gap-2 mb-4">
+      <h2 class="text-sm font-semibold text-gray-700">Low Stock Alerts</h2>
+      {% if low_stock %}
+      <span class="bg-red-100 text-red-700 text-xs font-semibold px-2 py-0.5 rounded-full">{{ low_stock|length }}</span>
+      {% endif %}
+    </div>
+    {% if low_stock %}
+    <div class="space-y-2">
+      {% for p in low_stock %}
+      <div class="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+        <div>
+          <div class="text-sm font-medium text-gray-800">{{ p.name }}</div>
+          <div class="text-xs text-gray-400">{{ p.category }} · Min: {{ p.min_stock_level }}</div>
+        </div>
+        <span class="text-sm font-semibold {% if p.stock_quantity == 0 %}text-red-600{% else %}text-amber-600{% endif %}">
+          {{ p.stock_quantity }} left
+        </span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm text-gray-400">All stock levels are healthy.</p>
+    {% endif %}
+  </div>
+
+  <!-- Top products -->
+  <div class="bg-white rounded-xl border border-gray-200 p-5">
+    <h2 class="text-sm font-semibold text-gray-700 mb-4">Top Products (30d)</h2>
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="text-xs text-gray-400 uppercase">
+          <th class="text-left pb-2 font-medium">Product</th>
+          <th class="text-right pb-2 font-medium">Units</th>
+          <th class="text-right pb-2 font-medium">Revenue</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-50">
+        {% for name, revenue, units in top_products %}
+        <tr>
+          <td class="py-2 font-medium text-gray-800">{{ name }}</td>
+          <td class="py-2 text-right text-gray-500">{{ units }}</td>
+          <td class="py-2 text-right font-semibold text-gray-800">{{ fmt(revenue) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  let revenueChart, categoryChart;
+
+  async function loadChart(days) {
+    const res = await fetch(`/api/revenue-chart?days=${days}`);
+    const data = await res.json();
+
+    document.querySelectorAll('.chart-btn').forEach(b => {
+      b.className = 'chart-btn text-xs px-3 py-1 rounded-full border border-gray-200 hover:bg-gray-100';
+    });
+    document.getElementById(`btn${days}`).className =
+      'chart-btn text-xs px-3 py-1 rounded-full bg-brand-600 text-white';
+
+    if (revenueChart) revenueChart.destroy();
+    const ctx = document.getElementById('revenueChart').getContext('2d');
+    revenueChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.labels,
+        datasets: [{
+          label: 'Revenue (RWF)',
+          data: data.values,
+          borderColor: '#16a34a',
+          backgroundColor: 'rgba(22,163,74,0.08)',
+          borderWidth: 2,
+          pointRadius: days <= 7 ? 4 : 2,
+          tension: 0.4,
+          fill: true,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: {
+            ticks: {
+              callback: v => v.toLocaleString() + ' RWF',
+              maxTicksLimit: 5,
+              font: { size: 11 }
+            },
+            grid: { color: '#f3f4f6' }
+          },
+          x: {
+            ticks: {
+              maxTicksLimit: days <= 7 ? 7 : 10,
+              font: { size: 11 }
+            },
+            grid: { display: false }
+          }
+        }
+      }
+    });
+  }
+
+  async function loadCategoryChart() {
+    const res = await fetch('/api/category-chart');
+    const data = await res.json();
+    const colors = ['#16a34a','#22c55e','#4ade80','#86efac','#bbf7d0','#f59e0b','#ef4444','#6366f1','#ec4899','#14b8a6'];
+    const ctx = document.getElementById('categoryChart').getContext('2d');
+    categoryChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: data.labels,
+        datasets: [{
+          data: data.values,
+          backgroundColor: colors.slice(0, data.labels.length),
+          borderWidth: 2,
+          borderColor: '#fff',
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { font: { size: 11 }, padding: 10, boxWidth: 12 }
+          }
+        }
+      }
+    });
+  }
+
+  loadChart(30);
+  loadCategoryChart();
+</script>
+{% endblock %}

@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+{% block title %}{{ customer.name }} — Pharmacie Tramed{% endblock %}
+{% block page_title %}{{ customer.name }}{% endblock %}
+
+{% block content %}
+
+<div class="flex gap-6">
+
+  <!-- Left column -->
+  <div class="flex-1 space-y-6">
+
+    <!-- Customer card -->
+    <div class="bg-white rounded-xl border border-gray-200 p-5 flex items-start gap-5">
+      <div class="w-12 h-12 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-lg flex-shrink-0">
+        {{ customer.name[0] }}
+      </div>
+      <div class="flex-1">
+        <h2 class="font-semibold text-gray-800 text-lg">{{ customer.name }}</h2>
+        <div class="text-sm text-gray-500 mt-0.5">{{ customer.phone }}</div>
+        {% if customer.notes %}
+        <div class="mt-1 text-xs text-gray-400">{{ customer.notes }}</div>
+        {% endif %}
+      </div>
+      <a href="https://wa.me/{{ customer.whatsapp_number }}" target="_blank"
+        class="flex items-center gap-2 text-xs bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg transition">
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+        </svg>
+        WhatsApp
+      </a>
+    </div>
+
+    <!-- Loyalty card -->
+    {% if customer.loyalty %}
+    {% set acct = customer.loyalty %}
+    {% set tier_colors = {'bronze': 'border-orange-200 bg-orange-50', 'silver': 'border-gray-300 bg-gray-50', 'gold': 'border-yellow-300 bg-yellow-50'} %}
+    {% set tier_labels = {'bronze': 'Bronze 🥉', 'silver': 'Silver 🥈', 'gold': 'Gold 🥇'} %}
+    {% set tier_text   = {'bronze': 'text-orange-700', 'silver': 'text-gray-600', 'gold': 'text-yellow-700'} %}
+    {% set next_at     = {'bronze': 500, 'silver': 2000, 'gold': None} %}
+    <div class="rounded-xl border-2 {{ tier_colors[acct.tier] }} p-5">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-semibold text-gray-700">Loyalty Card</h3>
+        <span class="text-xs font-semibold {{ tier_text[acct.tier] }} px-2 py-0.5 rounded-full
+          {% if acct.tier == 'gold' %}bg-yellow-100{% elif acct.tier == 'silver' %}bg-gray-200{% else %}bg-orange-100{% endif %}">
+          {{ tier_labels[acct.tier] }}
+        </span>
+      </div>
+      <div class="grid grid-cols-3 gap-3 text-center mb-4">
+        <div>
+          <div class="text-xl font-bold text-brand-700">{{ "{:,}".format(acct.points_balance) }}</div>
+          <div class="text-xs text-gray-400">pts balance</div>
+        </div>
+        <div>
+          <div class="text-xl font-bold text-gray-700">{{ "{:,}".format((acct.points_balance // 100) * 500) }}</div>
+          <div class="text-xs text-gray-400">RWF value</div>
+        </div>
+        <div>
+          <div class="text-xl font-bold text-gray-500">{{ "{:,}".format(acct.lifetime_points) }}</div>
+          <div class="text-xs text-gray-400">lifetime pts</div>
+        </div>
+      </div>
+      {% if next_at[acct.tier] %}
+      {% set needed = next_at[acct.tier] - acct.lifetime_points %}
+      {% if needed > 0 %}
+      <div class="text-xs text-gray-400 mb-1">{{ needed }} pts to next tier</div>
+      <div class="h-2 bg-white rounded-full overflow-hidden border border-gray-200">
+        <div class="h-full bg-brand-500 rounded-full"
+          style="width: {{ [100, (acct.lifetime_points / next_at[acct.tier] * 100)|int]|min }}%"></div>
+      </div>
+      {% endif %}
+      {% endif %}
+      <!-- Recent transactions -->
+      {% if acct.transactions %}
+      <div class="mt-4 space-y-1">
+        <div class="text-xs font-medium text-gray-500 mb-2">Recent transactions</div>
+        {% for txn in (acct.transactions|sort(attribute='created_at', reverse=True)|list)[:5] %}
+        <div class="flex justify-between text-xs py-1 border-b border-white/60 last:border-0">
+          <span class="text-gray-500">{{ txn.created_at.strftime('%d %b') }} · {{ txn.note[:40] if txn.note else txn.transaction_type }}</span>
+          <span class="font-semibold {% if txn.points > 0 %}text-brand-600{% else %}text-red-500{% endif %}">
+            {% if txn.points > 0 %}+{% endif %}{{ txn.points }} pts
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="bg-gray-50 border border-dashed border-gray-200 rounded-xl p-4 text-sm text-gray-400 text-center">
+      No loyalty account yet.
+      <a href="/loyalty/counter" class="text-brand-600 hover:text-brand-800 font-medium underline">Award points at counter</a>
+      to enrol automatically.
+    </div>
+    {% endif %}
+
+    <!-- Purchase pattern analysis -->
+    {% if patterns %}
+    <div class="bg-white rounded-xl border border-gray-200 p-5">
+      <div class="flex items-center gap-2 mb-4">
+        <h3 class="text-sm font-semibold text-gray-700">Recurring Purchase Patterns</h3>
+        <span class="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Detected automatically</span>
+      </div>
+      <div class="space-y-3">
+        {% for p in patterns %}
+        <div class="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+          <div>
+            <div class="text-sm font-medium text-gray-800">{{ p.product.name }}</div>
+            <div class="text-xs text-gray-400">
+              Bought {{ p.purchase_count }}× · Last: {{ p.last_date.strftime('%d %b %Y') }}
+              {% if p.avg_interval %}· Avg every {{ p.avg_interval }} days{% endif %}
+            </div>
+          </div>
+          {% if p.already_scheduled %}
+          <span class="text-xs text-brand-600 font-medium bg-brand-50 px-2 py-0.5 rounded-full">Scheduled</span>
+          {% else %}
+          <form method="post" action="/customers/{{ customer.id }}/schedule/add" class="flex items-center gap-2">
+            <input type="hidden" name="product_id" value="{{ p.product.id }}" />
+            <input type="hidden" name="interval_days" value="{{ p.avg_interval or 30 }}" />
+            <button type="submit"
+              class="text-xs text-brand-600 hover:text-brand-800 font-medium border border-brand-200 px-2 py-1 rounded-lg hover:bg-brand-50 transition">
+              + Add Schedule
+            </button>
+          </form>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Active schedules -->
+    <div class="bg-white rounded-xl border border-gray-200 p-5">
+      <h3 class="text-sm font-semibold text-gray-700 mb-4">Medication Schedules</h3>
+      {% set active_scheds = customer.schedules|selectattr('active')|list %}
+      {% set inactive_scheds = customer.schedules|rejectattr('active')|list %}
+      {% if customer.schedules %}
+      <div class="space-y-3">
+        {% for s in customer.schedules|sort(attribute='active', reverse=True) %}
+        <div class="flex items-center justify-between p-3 rounded-lg
+          {% if s.active %}bg-gray-50 border border-gray-100{% else %}bg-gray-50 border border-dashed border-gray-200 opacity-60{% endif %}">
+          <div>
+            <div class="text-sm font-medium text-gray-800">{{ s.product.name }}</div>
+            <div class="text-xs text-gray-500 mt-0.5">
+              Every {{ s.interval_days }} days
+              {% if s.last_purchase_date %} · Last: {{ s.last_purchase_date.strftime('%d %b %Y') }}{% endif %}
+              {% if s.next_reminder_date %}
+                · Reminder: <span class="{% if s.next_reminder_date <= today.date() %}text-red-600 font-semibold{% else %}text-gray-500{% endif %}">
+                  {{ s.next_reminder_date.strftime('%d %b %Y') }}
+                </span>
+              {% endif %}
+            </div>
+            {% if s.notes %}<div class="text-xs text-gray-400 mt-0.5">{{ s.notes }}</div>{% endif %}
+          </div>
+          <div class="flex gap-2 ml-3">
+            {% if s.active %}
+            <form method="post" action="/customers/{{ customer.id }}/schedule/{{ s.id }}/renew">
+              <button type="submit" class="text-xs text-brand-600 hover:text-brand-800 font-medium px-2 py-1 rounded border border-brand-200 hover:bg-brand-50 transition">
+                Renewed today
+              </button>
+            </form>
+            {% endif %}
+            <form method="post" action="/customers/{{ customer.id }}/schedule/{{ s.id }}/toggle">
+              <button type="submit" class="text-xs text-gray-400 hover:text-gray-600 px-2 py-1 rounded border border-gray-200 hover:bg-gray-100 transition">
+                {% if s.active %}Deactivate{% else %}Reactivate{% endif %}
+              </button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-sm text-gray-400">No schedules yet. Add one below or use a detected pattern above.</p>
+      {% endif %}
+    </div>
+
+    <!-- Purchase history -->
+    {% if sales %}
+    <div class="bg-white rounded-xl border border-gray-200 p-5">
+      <h3 class="text-sm font-semibold text-gray-700 mb-4">Purchase History</h3>
+      <div class="space-y-2">
+        {% for sale in sales[:20] %}
+        <div class="flex items-start justify-between py-2 border-b border-gray-50 last:border-0">
+          <div>
+            <div class="text-xs text-gray-400">{{ sale.created_at.strftime('%d %b %Y, %H:%M') }}</div>
+            <div class="text-xs text-gray-600 mt-0.5">
+              {% for item in sale.items %}
+              {{ item.product.name }}{% if not loop.last %}, {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+          <div class="text-sm font-semibold text-gray-800 ml-4 whitespace-nowrap">
+            {{ "{:,}".format(sale.total_amount|int) }} RWF
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- Right column: add schedule form -->
+  <div class="w-72 flex-shrink-0">
+    <div class="bg-white rounded-xl border border-gray-200 p-5">
+      <h3 class="text-sm font-semibold text-gray-700 mb-4">Add Medication Schedule</h3>
+      <form method="post" action="/customers/{{ customer.id }}/schedule/add" class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">Medication *</label>
+          <select name="product_id" required
+            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <option value="">Select product…</option>
+            {% for prod in products %}
+            <option value="{{ prod.id }}">{{ prod.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">Refill Interval (days) *</label>
+          <div class="flex gap-2 mb-2">
+            {% for d in [14, 30, 45, 60, 90] %}
+            <button type="button" onclick="setInterval({{ d }})"
+              class="interval-btn text-xs px-2 py-1 rounded border border-gray-200 hover:bg-brand-50 hover:border-brand-300 hover:text-brand-700 transition">
+              {{ d }}d
+            </button>
+            {% endfor %}
+          </div>
+          <input id="intervalInput" name="interval_days" type="number" min="1" value="30" required
+            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">Last Purchase Date</label>
+          <input name="last_purchase_date" type="date" value="{{ today.strftime('%Y-%m-%d') }}"
+            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">Notes (optional)</label>
+          <input name="notes" placeholder="e.g. Takes 2 per day"
+            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+        </div>
+        <button type="submit"
+          class="w-full bg-brand-600 text-white text-sm py-2 rounded-lg hover:bg-brand-700 transition font-medium">
+          Add Schedule
+        </button>
+      </form>
+    </div>
+
+    <div class="mt-4">
+      <a href="/customers" class="text-sm text-gray-400 hover:text-gray-600">← Back to customers</a>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function setInterval(days) {
+    document.getElementById('intervalInput').value = days;
+  }
+</script>
+{% endblock %}

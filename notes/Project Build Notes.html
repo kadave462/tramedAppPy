@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pharmacie Tramed — Project Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans">
+
+  <div class="max-w-4xl mx-auto px-6 py-12">
+
+    <!-- Header -->
+    <div class="mb-10">
+      <div class="text-xs font-semibold text-green-600 uppercase tracking-widest mb-2">Pharmacie Tramed · Kigali, Rwanda</div>
+      <h1 class="text-4xl font-bold text-gray-900 mb-2">Project Build Notes</h1>
+      <p class="text-gray-500 text-sm">CS Internship — Digital Transformation &amp; AI Implementation · Updated June 2026</p>
+    </div>
+
+    <!-- What we're building -->
+    <section class="mb-10">
+      <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">What We're Building</h2>
+      <p class="text-gray-600 leading-relaxed">
+        Pharmacie Tramed already runs <strong>Ishyiga POS</strong> for core transactions — sales recording, stock tracking, and alerts.
+        This project builds the <strong>intelligence layer on top</strong>: turning raw Ishyiga data into predictions, automation, and insights
+        that increase profitability. Every solution is documented as a replicable blueprint for other pharmacies across Rwanda.
+      </p>
+    </section>
+
+    <!-- Tech stack -->
+    <section class="mb-10">
+      <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Tech Stack</h2>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="bg-white border border-gray-200 rounded-lg p-4">
+          <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Backend</div>
+          <ul class="space-y-1 text-sm text-gray-700">
+            <li><span class="font-medium">Python 3.13</span> — core language</li>
+            <li><span class="font-medium">Flask 3.0</span> — web framework</li>
+            <li><span class="font-medium">Flask-SQLAlchemy</span> — ORM</li>
+            <li><span class="font-medium">SQLite</span> — local database</li>
+            <li><span class="font-medium">pandas + numpy</span> — data &amp; ML</li>
+          </ul>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-lg p-4">
+          <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Frontend</div>
+          <ul class="space-y-1 text-sm text-gray-700">
+            <li><span class="font-medium">Tailwind CSS</span> — styling (CDN)</li>
+            <li><span class="font-medium">Chart.js 4</span> — charts (CDN)</li>
+            <li><span class="font-medium">Jinja2</span> — HTML templating</li>
+            <li><span class="font-medium">Vanilla JS</span> — interactivity</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Files built -->
+    <section class="mb-10">
+      <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Files Built</h2>
+      <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+            <tr>
+              <th class="text-left px-4 py-3 font-medium">File</th>
+              <th class="text-left px-4 py-3 font-medium">Purpose</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <tr class="hover:bg-gray-50">
+              <td class="px-4 py-3 font-mono text-green-700 font-medium">app.py</td>
+              <td class="px-4 py-3 text-gray-600">Flask app — all routes, helpers, context processors</td>
+            </tr>
+            <tr class="hover:bg-gray-50">
+              <td class="px-4 py-3 font-mono text-green-700 font-medium">database.py</td>
+              <td class="px-4 py-3 text-gray-600">SQLAlchemy models: Product, Supplier, Sale, SaleItem</td>
+            </tr>
+            <tr class="hover:bg-gray-50">
+              <td class="px-4 py-3 font-mono text-green-700 font-medium">seed_data.py</td>
+              <td class="px-4 py-3 text-gray-600">Populates DB with 30 real Rwandan medicines + 90 days of sales history</td>
+            </tr>
+            <tr class="hover:bg-gray-50">
+              <td class="px-4 py-3 font-mono text-green-700 font-medium">forecasting.py</td>
+              <td class="px-4 py-3 text-gray-600">Demand forecasting model — trend + seasonality + reorder logic</td>
+            </tr>
+            <tr class="hover:bg-gray-50">
+              <td class="px-4 py-3 font-mono text-green-700 font-medium">requirements.txt</td>
+              <td class="px-4 py-3 text-gray-600">Python dependencies</td>
+            </tr>
+            <tr class="hover:bg-gray-50">
+              <td class="px-4 py-3 font-mono text-blue-600 font-medium">templates/base.html</td>
+              <td class="px-4 py-3 text-gray-600">Shared layout — green sidebar, nav links, header</td>
+            </tr>
+            <tr class="hover:bg-gray-50">
+              <td class="px-4 py-3 font-mono text-blue-600 font-medium">templates/dashboard.html</td>
+              <td class="px-4 py-3 text-gray-600">Main dashboard — revenue cards, trend chart, category chart, low stock, top products</td>
+            </tr>
+            <tr class="hover:bg-gray-50">
+              <td class="px-4 py-3 font-mono text-blue-600 font-medium">templates/inventory.html</td>
+              <td class="px-4 py-3 text-gray-600">Full product table — search, filter, margin %, stock update modal</td>
+            </tr>
+            <tr class="hover:bg-gray-50">
+              <td class="px-4 py-3 font-mono text-blue-600 font-medium">templates/sales.html</td>
+              <td class="px-4 py-3 text-gray-600">Paginated sales history — expandable rows showing line items</td>
+            </tr>
+            <tr class="hover:bg-gray-50">
+              <td class="px-4 py-3 font-mono text-blue-600 font-medium">templates/forecast.html</td>
+              <td class="px-4 py-3 text-gray-600">AI forecast page — urgency table, reorder quantities, per-product charts</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Pages -->
+    <section class="mb-10">
+      <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Pages &amp; Routes</h2>
+      <div class="space-y-4">
+
+        <div class="bg-white border border-gray-200 rounded-lg p-4">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="font-mono text-sm bg-gray-100 px-2 py-0.5 rounded text-gray-700">GET /</span>
+            <span class="font-semibold text-gray-800">Dashboard</span>
+          </div>
+          <p class="text-sm text-gray-600">Revenue summary cards (today / week / month), % change vs yesterday, 7d/30d/90d revenue line chart, sales-by-category donut chart, low stock alert list, top 5 products by revenue (last 30 days).</p>
+        </div>
+
+        <div class="bg-white border border-gray-200 rounded-lg p-4">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="font-mono text-sm bg-gray-100 px-2 py-0.5 rounded text-gray-700">GET /inventory</span>
+            <span class="font-semibold text-gray-800">Inventory</span>
+          </div>
+          <p class="text-sm text-gray-600">All 30 products with sell price, cost price, margin %, stock quantity, min level, supplier, and color-coded status (OK / Low Stock / Out of Stock). Search by name, filter by category. Inline stock update modal — click "Update Stock", enter new quantity, save without page reload.</p>
+        </div>
+
+        <div class="bg-white border border-gray-200 rounded-lg p-4">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="font-mono text-sm bg-gray-100 px-2 py-0.5 rounded text-gray-700">GET /sales</span>
+            <span class="font-semibold text-gray-800">Sales History</span>
+          </div>
+          <p class="text-sm text-gray-600">Paginated list of all sales (25 per page), sorted newest first. Shows date/time, item count, payment method badge (Cash / MoMo / Card), and total. Click any row to expand and see every line item with quantity × unit price.</p>
+        </div>
+
+        <div class="bg-white border border-gray-200 rounded-lg p-4">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="font-mono text-sm bg-gray-100 px-2 py-0.5 rounded text-gray-700">GET /forecast</span>
+            <span class="font-semibold text-gray-800">Demand Forecast</span>
+          </div>
+          <p class="text-sm text-gray-600">AI-powered reorder intelligence. Summary strip shows count of Critical / Urgent / Soon / OK products. Table shows every product with: days of stock remaining, average daily demand, forecasted demand for next 7 / 14 / 30 days, demand trend (↑↓→), and recommended reorder quantity. "View Chart" opens a modal with 30-day actual sales + 14-day forecast overlay.</p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- API endpoints -->
+    <section class="mb-10">
+      <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">API Endpoints</h2>
+      <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+            <tr>
+              <th class="text-left px-4 py-3 font-medium">Endpoint</th>
+              <th class="text-left px-4 py-3 font-medium">What it returns</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <tr><td class="px-4 py-3 font-mono text-xs text-gray-700">GET /api/revenue-chart?days=N</td><td class="px-4 py-3 text-gray-600">Daily revenue for last N days (labels + values array)</td></tr>
+            <tr><td class="px-4 py-3 font-mono text-xs text-gray-700">GET /api/category-chart</td><td class="px-4 py-3 text-gray-600">Revenue by product category (last 30 days)</td></tr>
+            <tr><td class="px-4 py-3 font-mono text-xs text-gray-700">GET /api/product-forecast/&lt;id&gt;</td><td class="px-4 py-3 text-gray-600">Full forecast object for one product — historical + 30-day projection</td></tr>
+            <tr><td class="px-4 py-3 font-mono text-xs text-gray-700">POST /api/stock-update</td><td class="px-4 py-3 text-gray-600">Update stock quantity for a product (body: {id, quantity})</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Forecasting model -->
+    <section class="mb-10">
+      <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Forecasting Model — How It Works</h2>
+      <div class="space-y-3 text-sm text-gray-600 leading-relaxed">
+        <div class="flex gap-3">
+          <span class="bg-green-100 text-green-700 font-semibold text-xs px-2 py-1 rounded h-fit mt-0.5">1</span>
+          <p><strong>Daily aggregation:</strong> Pulls all SaleItems for a product over the last 90 days, groups by date, fills missing days with zero to get a complete daily time series.</p>
+        </div>
+        <div class="flex gap-3">
+          <span class="bg-green-100 text-green-700 font-semibold text-xs px-2 py-1 rounded h-fit mt-0.5">2</span>
+          <p><strong>Day-of-week multipliers:</strong> Calculates how much each day of the week deviates from the overall mean (e.g. Mondays sell 30% more than average → multiplier = 1.3). Captures weekly pharmacy traffic patterns.</p>
+        </div>
+        <div class="flex gap-3">
+          <span class="bg-green-100 text-green-700 font-semibold text-xs px-2 py-1 rounded h-fit mt-0.5">3</span>
+          <p><strong>Linear trend fit:</strong> Deseasonalises the last 30 days of data (removes day-of-week noise), then fits a linear regression using <code class="bg-gray-100 px-1 rounded">numpy.polyfit</code>. The slope tells us if demand is growing or shrinking over time.</p>
+        </div>
+        <div class="flex gap-3">
+          <span class="bg-green-100 text-green-700 font-semibold text-xs px-2 py-1 rounded h-fit mt-0.5">4</span>
+          <p><strong>Forward projection:</strong> For each future day, the model combines <em>trend(day_index) × dow_multiplier</em>, clamped to zero. Produces a 30-day daily forecast array.</p>
+        </div>
+        <div class="flex gap-3">
+          <span class="bg-green-100 text-green-700 font-semibold text-xs px-2 py-1 rounded h-fit mt-0.5">5</span>
+          <p><strong>Reorder logic:</strong> <code class="bg-gray-100 px-1 rounded">reorder_qty = forecast_14d + (avg_daily × 7 safety days) − current_stock</code>. Lead time is 3 days. Urgency is Critical if stock runs out before restock could arrive, Urgent within the safety buffer, Soon within 14 days, OK otherwise.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Database schema -->
+    <section class="mb-10">
+      <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Database Schema</h2>
+      <div class="grid grid-cols-2 gap-4">
+        <div class="bg-white border border-gray-200 rounded-lg p-4">
+          <div class="font-mono text-sm font-semibold text-gray-700 mb-2">products</div>
+          <ul class="text-xs text-gray-500 space-y-1 font-mono">
+            <li>id, name, category</li>
+            <li>unit_price, cost_price</li>
+            <li>stock_quantity, min_stock_level</li>
+            <li>supplier_id → suppliers.id</li>
+          </ul>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-lg p-4">
+          <div class="font-mono text-sm font-semibold text-gray-700 mb-2">suppliers</div>
+          <ul class="text-xs text-gray-500 space-y-1 font-mono">
+            <li>id, name</li>
+            <li>phone, email</li>
+          </ul>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-lg p-4">
+          <div class="font-mono text-sm font-semibold text-gray-700 mb-2">sales</div>
+          <ul class="text-xs text-gray-500 space-y-1 font-mono">
+            <li>id, created_at</li>
+            <li>total_amount</li>
+            <li>payment_method</li>
+          </ul>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-lg p-4">
+          <div class="font-mono text-sm font-semibold text-gray-700 mb-2">sale_items</div>
+          <ul class="text-xs text-gray-500 space-y-1 font-mono">
+            <li>id</li>
+            <li>sale_id → sales.id</li>
+            <li>product_id → products.id</li>
+            <li>quantity, unit_price</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- What's next -->
+    <section class="mb-10">
+      <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">What's Next (Remaining Scope)</h2>
+      <div class="space-y-2">
+        <div class="flex items-start gap-3 bg-white border border-gray-200 rounded-lg p-3">
+          <span class="w-5 h-5 border-2 border-gray-300 rounded flex-shrink-0 mt-0.5"></span>
+          <div>
+            <div class="text-sm font-medium text-gray-800">Ishyiga CSV import</div>
+            <div class="text-xs text-gray-500">Replace seed data with real exports from Ishyiga POS so the forecast runs on live pharmacy data</div>
+          </div>
+        </div>
+        <div class="flex items-start gap-3 bg-white border border-gray-200 rounded-lg p-3">
+          <span class="w-5 h-5 border-2 border-gray-300 rounded flex-shrink-0 mt-0.5"></span>
+          <div>
+            <div class="text-sm font-medium text-gray-800">POS / new sale entry screen</div>
+            <div class="text-xs text-gray-500">Allow staff to record a sale directly in the system (product + qty + payment method)</div>
+          </div>
+        </div>
+        <div class="flex items-start gap-3 bg-white border border-gray-200 rounded-lg p-3">
+          <span class="w-5 h-5 border-2 border-gray-300 rounded flex-shrink-0 mt-0.5"></span>
+          <div>
+            <div class="text-sm font-medium text-gray-800">Supplier reorder export</div>
+            <div class="text-xs text-gray-500">One-click export of the reorder list as a formatted WhatsApp message or PDF per supplier</div>
+          </div>
+        </div>
+        <div class="flex items-start gap-3 bg-white border border-gray-200 rounded-lg p-3">
+          <span class="w-5 h-5 border-2 border-gray-300 rounded flex-shrink-0 mt-0.5"></span>
+          <div>
+            <div class="text-sm font-medium text-gray-800">WhatsApp Business automation</div>
+            <div class="text-xs text-gray-500">Chronic medication reminders, stock availability replies, supplier reorder messages via WhatsApp API</div>
+          </div>
+        </div>
+        <div class="flex items-start gap-3 bg-white border border-gray-200 rounded-lg p-3">
+          <span class="w-5 h-5 border-2 border-gray-300 rounded flex-shrink-0 mt-0.5"></span>
+          <div>
+            <div class="text-sm font-medium text-gray-800">Customer CRM module</div>
+            <div class="text-xs text-gray-500">Track repeat patients, purchase history, loyalty points, and chronic medication schedules</div>
+          </div>
+        </div>
+        <div class="flex items-start gap-3 bg-white border border-gray-200 rounded-lg p-3">
+          <span class="w-5 h-5 border-2 border-gray-300 rounded flex-shrink-0 mt-0.5"></span>
+          <div>
+            <div class="text-sm font-medium text-gray-800">Stock anomaly detection</div>
+            <div class="text-xs text-gray-500">Flag unusual drops in stock that don't match sales records (potential loss or theft)</div>
+          </div>
+        </div>
+        <div class="flex items-start gap-3 bg-white border border-gray-200 rounded-lg p-3">
+          <span class="w-5 h-5 border-2 border-gray-300 rounded flex-shrink-0 mt-0.5"></span>
+          <div>
+            <div class="text-sm font-medium text-gray-800">Customer segmentation (ML)</div>
+            <div class="text-xs text-gray-500">Group customers by purchase behaviour for targeted communication and loyalty offers</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How to run -->
+    <section class="mb-4">
+      <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">How to Run</h2>
+      <div class="bg-gray-900 text-green-400 font-mono text-sm rounded-lg p-5 space-y-1">
+        <div><span class="text-gray-500"># 1. Install dependencies</span></div>
+        <div>pip install flask flask-sqlalchemy pandas numpy</div>
+        <div class="pt-2"><span class="text-gray-500"># 2. Start the server (seeds DB on first run)</span></div>
+        <div>python app.py</div>
+        <div class="pt-2"><span class="text-gray-500"># 3. Open in browser</span></div>
+        <div>http://127.0.0.1:5000</div>
+      </div>
+    </section>
+
+    <div class="text-xs text-gray-400 text-right mt-8">
+      Built with Python · Flask · SQLite · Tailwind · Chart.js · pandas · numpy
+    </div>
+
+  </div>
+</body>
+</html>

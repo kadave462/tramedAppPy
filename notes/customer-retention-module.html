@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Customer Retention Module — Build Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans">
+<div class="max-w-4xl mx-auto px-6 py-12">
+
+  <!-- Header -->
+  <div class="mb-10">
+    <div class="text-xs font-semibold text-green-600 uppercase tracking-widest mb-2">Pharmacie Tramed · Build Notes</div>
+    <h1 class="text-4xl font-bold text-gray-900 mb-2">Customer Retention Module</h1>
+    <p class="text-gray-500 text-sm">How it was designed, built, and debugged — June 2026</p>
+  </div>
+
+  <!-- What this module does -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">What This Module Does</h2>
+    <p class="text-gray-600 leading-relaxed mb-3">
+      Before this module, Pharmacie Tramed had no way to track which customers buy the same medication repeatedly.
+      Patients on chronic medication (diabetes, hypertension, asthma) had no structured follow-up — retention
+      depended entirely on the patient remembering to return.
+    </p>
+    <p class="text-gray-600 leading-relaxed">
+      This module adds three capabilities on top of the existing system:
+    </p>
+    <ul class="mt-3 space-y-2 text-gray-600 text-sm">
+      <li class="flex gap-2"><span class="text-green-600 font-bold">1.</span> <span><strong>Medication schedule management</strong> — staff can register a customer and set a refill reminder schedule per product (e.g. every 30 days). The system tracks when the next reminder is due.</span></li>
+      <li class="flex gap-2"><span class="text-green-600 font-bold">2.</span> <span><strong>Automatic pattern detection</strong> — the system analyses each customer's purchase history and automatically identifies which products they buy repeatedly, inferring the average refill interval.</span></li>
+      <li class="flex gap-2"><span class="text-green-600 font-bold">3.</span> <span><strong>WhatsApp message generation</strong> — pre-written, personalised reminder messages for patients and reorder messages for suppliers, ready to send via WhatsApp in one click (no API needed — uses wa.me deep links).</span></li>
+    </ul>
+  </section>
+
+  <!-- Step 1: Requirements -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Step 1 — Understanding the Requirements</h2>
+    <p class="text-gray-600 leading-relaxed mb-3">
+      The requirements came in as three bullet points:
+    </p>
+    <div class="bg-gray-900 text-green-400 font-mono text-sm rounded-lg p-5 space-y-1 mb-4">
+      <div>- Allow creation of WhatsApp reminder schedules for chronic medication customers.</div>
+      <div>- Identify repeat customers or recurring prescription patterns from purchase history.</div>
+      <div>- Prepare message content for WhatsApp reminders and supplier reorder alerts.</div>
+    </div>
+    <p class="text-gray-600 leading-relaxed">
+      Before writing any code, the scope was broken into four components that would need to be built:
+    </p>
+    <ul class="mt-3 space-y-1 text-gray-600 text-sm list-disc list-inside">
+      <li>New database models: <code class="bg-gray-100 px-1 rounded">Customer</code> and <code class="bg-gray-100 px-1 rounded">MedicationSchedule</code></li>
+      <li>An analytics module (<code class="bg-gray-100 px-1 rounded">retention.py</code>) for pattern detection and message generation</li>
+      <li>New pages: customer list, customer detail, and WhatsApp message centre</li>
+      <li>Updates to the existing sidebar navigation</li>
+    </ul>
+  </section>
+
+  <!-- Step 2: Database design -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Step 2 — Database Design</h2>
+    <p class="text-gray-600 leading-relaxed mb-4">
+      The existing <code class="bg-gray-100 px-1 rounded">Sale</code> model had no link to any customer — all sales were anonymous.
+      Two decisions were made:
+    </p>
+    <div class="space-y-4">
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="text-sm font-semibold text-gray-700 mb-1">Decision 1 — Add a Customer model</div>
+        <p class="text-xs text-gray-500">Stores name, phone, notes, and creation date. The <code class="bg-gray-100 px-1 rounded">whatsapp_number</code> property automatically converts the Rwandan format <code class="bg-gray-100 px-1 rounded">07XXXXXXXX</code> to the international format <code class="bg-gray-100 px-1 rounded">250XXXXXXXXX</code> needed for wa.me links.</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="text-sm font-semibold text-gray-700 mb-1">Decision 2 — Add <code class="bg-gray-100 px-1 rounded text-sm">customer_id</code> (nullable) to Sale</div>
+        <p class="text-xs text-gray-500">Made nullable so all existing anonymous sales remain valid. Staff can now optionally link a sale to a known customer, which feeds the pattern detection.</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="text-sm font-semibold text-gray-700 mb-1">Decision 3 — Add a MedicationSchedule model</div>
+        <p class="text-xs text-gray-500">One row per customer–product combination. Stores <code class="bg-gray-100 px-1 rounded">interval_days</code>, <code class="bg-gray-100 px-1 rounded">last_purchase_date</code>, and <code class="bg-gray-100 px-1 rounded">next_reminder_date</code>. The next reminder is calculated as <code class="bg-gray-100 px-1 rounded">last_purchase + interval - 3 days</code> (3-day early warning buffer). Has an <code class="bg-gray-100 px-1 rounded">active</code> flag so schedules can be paused without deleting them.</p>
+      </div>
+    </div>
+    <p class="text-gray-600 leading-relaxed mt-4 text-sm">
+      <strong>Important ordering note:</strong> In <code class="bg-gray-100 px-1 rounded">database.py</code>, the <code class="bg-gray-100 px-1 rounded">Customer</code> model had to be defined <em>before</em> <code class="bg-gray-100 px-1 rounded">Sale</code>, because Sale has a ForeignKey pointing to Customer. SQLAlchemy resolves forward references but placing them in the right order avoids potential issues.
+    </p>
+  </section>
+
+  <!-- Step 3: Seed data -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Step 3 — Seed Data for Chronic Customers</h2>
+    <p class="text-gray-600 leading-relaxed mb-3">
+      The feature needed realistic data to demonstrate it working. Eight customers were added to <code class="bg-gray-100 px-1 rounded">seed_data.py</code>, five of whom are chronic patients with repeat purchase histories seeded across 90 days:
+    </p>
+    <div class="bg-white border border-gray-200 rounded-lg overflow-hidden mb-4">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+          <tr>
+            <th class="text-left px-4 py-3 font-medium">Customer</th>
+            <th class="text-left px-4 py-3 font-medium">Medication</th>
+            <th class="text-left px-4 py-3 font-medium">Interval</th>
+            <th class="text-left px-4 py-3 font-medium">Last Purchase</th>
+            <th class="text-left px-4 py-3 font-medium">Status at seed</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 text-xs">
+          <tr><td class="px-4 py-2.5">Uwimana Jean</td><td class="px-4 py-2.5">Metformin + Glibenclamide</td><td class="px-4 py-2.5">30 days</td><td class="px-4 py-2.5">36 days ago</td><td class="px-4 py-2.5 text-red-600 font-medium">Overdue</td></tr>
+          <tr><td class="px-4 py-2.5">Mukamana Alice</td><td class="px-4 py-2.5">Amlodipine 5mg</td><td class="px-4 py-2.5">30 days</td><td class="px-4 py-2.5">28 days ago</td><td class="px-4 py-2.5 text-amber-600 font-medium">Due soon</td></tr>
+          <tr><td class="px-4 py-2.5">Habimana Pierre</td><td class="px-4 py-2.5">Salbutamol Inhaler</td><td class="px-4 py-2.5">60 days</td><td class="px-4 py-2.5">55 days ago</td><td class="px-4 py-2.5 text-amber-600 font-medium">Due soon</td></tr>
+          <tr><td class="px-4 py-2.5">Bizimana Emmanuel</td><td class="px-4 py-2.5">Atorvastatin + Enalapril</td><td class="px-4 py-2.5">30 days</td><td class="px-4 py-2.5">33 days ago</td><td class="px-4 py-2.5 text-red-600 font-medium">Overdue</td></tr>
+          <tr><td class="px-4 py-2.5">Uwera Diane</td><td class="px-4 py-2.5">Metformin 500mg</td><td class="px-4 py-2.5">30 days</td><td class="px-4 py-2.5">24 days ago</td><td class="px-4 py-2.5 text-blue-600 font-medium">Upcoming</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="text-gray-600 text-sm leading-relaxed">
+      Each chronic customer has 3 historical purchases seeded (spaced by their interval ± a few days of randomness to simulate real behaviour). The <code class="bg-gray-100 px-1 rounded">MedicationSchedule</code> records are also created during seeding so the system has live reminder data from day one.
+    </p>
+  </section>
+
+  <!-- Step 4: retention.py -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Step 4 — Building <code class="bg-gray-100 px-1 rounded text-base">retention.py</code></h2>
+    <p class="text-gray-600 leading-relaxed mb-4">
+      All business logic lives in <code class="bg-gray-100 px-1 rounded">retention.py</code>. It has four responsibilities:
+    </p>
+
+    <div class="space-y-4">
+
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="text-sm font-semibold text-gray-700 mb-2">4a. <code class="bg-gray-100 px-1 rounded">detect_purchase_patterns(customer_id)</code></div>
+        <p class="text-xs text-gray-500 leading-relaxed">
+          Queries <code class="bg-gray-100 px-1 rounded">sale_items</code> joined to <code class="bg-gray-100 px-1 rounded">sales</code> filtered by <code class="bg-gray-100 px-1 rounded">customer_id</code>. Groups by product, counts purchases, and filters for products bought ≥2 times. Calculates <code class="bg-gray-100 px-1 rounded">avg_interval = span / (count - 1)</code> where span is the number of days between first and last purchase. Also checks whether a schedule already exists for this product so the UI can show "Scheduled" instead of "Add Schedule".
+        </p>
+      </div>
+
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="text-sm font-semibold text-gray-700 mb-2">4b. <code class="bg-gray-100 px-1 rounded">get_due_reminders(days_ahead)</code></div>
+        <p class="text-xs text-gray-500 leading-relaxed">
+          Queries all active <code class="bg-gray-100 px-1 rounded">MedicationSchedule</code> rows where <code class="bg-gray-100 px-1 rounded">next_reminder_date ≤ today + days_ahead</code>. For each one, calculates an urgency label: <code class="bg-gray-100 px-1 rounded">overdue</code> (past due), <code class="bg-gray-100 px-1 rounded">due_today</code>, <code class="bg-gray-100 px-1 rounded">due_soon</code> (within 3 days), or <code class="bg-gray-100 px-1 rounded">upcoming</code>. Returns a list of dicts including the pre-generated message text and wa.me URL so the template only needs to render, not compute.
+        </p>
+      </div>
+
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="text-sm font-semibold text-gray-700 mb-2">4c. <code class="bg-gray-100 px-1 rounded">get_supplier_reorder_messages()</code></div>
+        <p class="text-xs text-gray-500 leading-relaxed">
+          Calls <code class="bg-gray-100 px-1 rounded">all_product_forecasts()</code> from <code class="bg-gray-100 px-1 rounded">forecasting.py</code> to get urgency and reorder quantities. Filters for critical/urgent/soon products with <code class="bg-gray-100 px-1 rounded">reorder_qty > 0</code>, then groups them by supplier. Produces one message dict per supplier containing the supplier object, list of order lines, formatted message text, and wa.me URL.
+        </p>
+      </div>
+
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="text-sm font-semibold text-gray-700 mb-2">4d. Message text generators</div>
+        <p class="text-xs text-gray-500 leading-relaxed mb-2">
+          Two private functions: <code class="bg-gray-100 px-1 rounded">_reminder_message_text(schedule, days_until)</code> and <code class="bg-gray-100 px-1 rounded">_supplier_order_text(supplier, lines)</code>. Both return plain strings formatted for WhatsApp (uses * for bold, line breaks for readability). The wa.me URL is built by <code class="bg-gray-100 px-1 rounded">urllib.parse.quote()</code>-encoding the message text.
+        </p>
+        <div class="bg-gray-900 text-green-300 font-mono text-xs rounded p-3">
+          <div>https://wa.me/250788123456?text=Hello+Jean%2C%0A...</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Step 5: Routes -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Step 5 — Flask Routes</h2>
+    <p class="text-gray-600 leading-relaxed mb-4">Seven new routes were added to <code class="bg-gray-100 px-1 rounded">app.py</code>:</p>
+    <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+          <tr>
+            <th class="text-left px-4 py-3 font-medium">Route</th>
+            <th class="text-left px-4 py-3 font-medium">Method</th>
+            <th class="text-left px-4 py-3 font-medium">What it does</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 text-xs">
+          <tr><td class="px-4 py-2.5 font-mono">/customers</td><td class="px-4 py-2.5">GET</td><td class="px-4 py-2.5">List all customers, pass set of customer IDs with due reminders for badge display</td></tr>
+          <tr><td class="px-4 py-2.5 font-mono">/customers/new</td><td class="px-4 py-2.5">POST</td><td class="px-4 py-2.5">Create a new customer from form data, redirect back to /customers</td></tr>
+          <tr><td class="px-4 py-2.5 font-mono">/customers/&lt;id&gt;</td><td class="px-4 py-2.5">GET</td><td class="px-4 py-2.5">Customer detail — purchase history, detected patterns, active schedules</td></tr>
+          <tr><td class="px-4 py-2.5 font-mono">/customers/&lt;id&gt;/schedule/add</td><td class="px-4 py-2.5">POST</td><td class="px-4 py-2.5">Create a MedicationSchedule. Calculates next_reminder_date automatically</td></tr>
+          <tr><td class="px-4 py-2.5 font-mono">/customers/&lt;id&gt;/schedule/&lt;id&gt;/toggle</td><td class="px-4 py-2.5">POST</td><td class="px-4 py-2.5">Flip schedule.active between True/False</td></tr>
+          <tr><td class="px-4 py-2.5 font-mono">/customers/&lt;id&gt;/schedule/&lt;id&gt;/renew</td><td class="px-4 py-2.5">POST</td><td class="px-4 py-2.5">Set last_purchase_date = today and recalculate next_reminder_date</td></tr>
+          <tr><td class="px-4 py-2.5 font-mono">/messages</td><td class="px-4 py-2.5">GET</td><td class="px-4 py-2.5">WhatsApp action centre — all due reminders + all supplier reorders</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="text-gray-600 text-sm mt-4">
+      All POST routes redirect back using a helper <code class="bg-gray-100 px-1 rounded">_redirect(url)</code> to keep import scope clean (Flask's <code class="bg-gray-100 px-1 rounded">redirect</code> imported locally to avoid circular imports at module level).
+    </p>
+  </section>
+
+  <!-- Step 6: Templates -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Step 6 — Templates</h2>
+    <div class="space-y-4">
+
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="text-sm font-semibold text-gray-700 mb-1">customers.html</div>
+        <p class="text-xs text-gray-500 leading-relaxed">Two-column layout. Left: table of all customers with active schedule count and "Due" badge if they have a reminder within 7 days. Right: inline "Add Customer" form (name, phone, notes). An amber info box at the bottom links to /messages showing the count of due reminders.</p>
+      </div>
+
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="text-sm font-semibold text-gray-700 mb-1">customer_detail.html</div>
+        <p class="text-xs text-gray-500 leading-relaxed">
+          Four sections stacked vertically on the left:
+          (1) Customer card with name, phone, notes, and a direct WhatsApp button.
+          (2) Recurring purchase patterns detected automatically — each pattern shows product name, how many times purchased, last date, average interval, and a one-click "Add Schedule" form button if not already scheduled.
+          (3) Active and inactive medication schedules — each has a "Renewed today" button (resets the clock) and a "Deactivate/Reactivate" toggle.
+          (4) Purchase history — all sales linked to this customer.
+          Right column: manual "Add Schedule" form with preset interval buttons (14d, 30d, 45d, 60d, 90d).
+        </p>
+      </div>
+
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="text-sm font-semibold text-gray-700 mb-1">messages.html — The WhatsApp Action Centre</div>
+        <p class="text-xs text-gray-500 leading-relaxed">
+          Tab-based layout with two panels: <strong>Medication Reminders</strong> and <strong>Supplier Reorders</strong>. Tab switching is handled by a 10-line vanilla JS <code class="bg-gray-100 px-1 rounded">showTab()</code> function — no framework needed. Each message card shows: recipient, urgency badge, medication/product info, the full pre-written message in a monospace preview box, an <strong>Open in WhatsApp</strong> button (green, opens wa.me), and a <strong>Copy message</strong> button (uses <code class="bg-gray-100 px-1 rounded">navigator.clipboard.writeText</code> with a 2-second visual confirmation).
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Step 7: Bug found and fixed -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Step 7 — Bug Found and Fixed During Testing</h2>
+    <div class="bg-red-50 border border-red-200 rounded-lg p-5 mb-4">
+      <div class="text-sm font-semibold text-red-700 mb-2">Bug: <code class="bg-red-100 px-1 rounded">TypeError: object of type 'builtin_function_or_method' has no len()</code></div>
+      <p class="text-xs text-red-600 leading-relaxed">
+        The <code class="bg-red-100 px-1 rounded">messages.html</code> template crashed on <code class="bg-red-100 px-1 rounded">sm.items|length</code>.
+      </p>
+    </div>
+    <p class="text-gray-600 text-sm leading-relaxed mb-3">
+      <strong>Root cause:</strong> In <code class="bg-gray-100 px-1 rounded">retention.py</code>, the supplier reorder dict used <code class="bg-gray-100 px-1 rounded">"items"</code> as the key name for the list of order lines. In Jinja2, when you access <code class="bg-gray-100 px-1 rounded">sm.items</code> on a Python dict, Jinja2's attribute lookup resolves it as <code class="bg-gray-100 px-1 rounded">dict.items</code> — the built-in method — rather than the <code class="bg-gray-100 px-1 rounded">"items"</code> key. This is a known Jinja2 gotcha: dot notation on dicts tries attribute access first, so any key that shares a name with a Python dict method (<code class="bg-gray-100 px-1 rounded">items</code>, <code class="bg-gray-100 px-1 rounded">keys</code>, <code class="bg-gray-100 px-1 rounded">values</code>, <code class="bg-gray-100 px-1 rounded">get</code>, <code class="bg-gray-100 px-1 rounded">update</code>, etc.) will silently return the method object instead of the key's value.
+    </p>
+    <div class="bg-white border border-gray-200 rounded-lg p-4 text-xs font-mono">
+      <div class="text-red-500 mb-2"># Before (broken)</div>
+      <div class="text-gray-600">by_supplier[sup.id] = &#123;"supplier": sup, <span class="bg-red-100">"items"</span>: []&#125;</div>
+      <div class="mt-3 text-green-600 mb-2"># After (fixed)</div>
+      <div class="text-gray-600">by_supplier[sup.id] = &#123;"supplier": sup, <span class="bg-green-100">"lines"</span>: []&#125;</div>
+    </div>
+    <p class="text-gray-600 text-sm mt-3">
+      <strong>Fix:</strong> Renamed the key to <code class="bg-gray-100 px-1 rounded">"lines"</code> in both <code class="bg-gray-100 px-1 rounded">retention.py</code> and <code class="bg-gray-100 px-1 rounded">messages.html</code>. Flask's debug reloader picked up both changes instantly — no restart needed.
+    </p>
+    <p class="text-gray-600 text-sm mt-2">
+      <strong>Rule to remember:</strong> Never use Python dict built-in method names (<code class="bg-gray-100 px-1 rounded">items</code>, <code class="bg-gray-100 px-1 rounded">keys</code>, <code class="bg-gray-100 px-1 rounded">values</code>) as dict keys when passing dicts to Jinja2 templates. Use bracket notation <code class="bg-gray-100 px-1 rounded">sm['items']</code> as an alternative, but renaming is cleaner.
+    </p>
+  </section>
+
+  <!-- Step 8: DB reset issue -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Step 8 — Database Reset Process</h2>
+    <p class="text-gray-600 text-sm leading-relaxed mb-3">
+      Adding new models (<code class="bg-gray-100 px-1 rounded">Customer</code>, <code class="bg-gray-100 px-1 rounded">MedicationSchedule</code>) and modifying an existing one (<code class="bg-gray-100 px-1 rounded">Sale.customer_id</code>) required resetting the SQLite database. Since this is a development environment with no migration tool (no Alembic), the process was:
+    </p>
+    <div class="bg-gray-900 text-green-400 font-mono text-sm rounded-lg p-5 space-y-1 mb-3">
+      <div class="text-gray-500"># 1. Kill the running Flask process</div>
+      <div>Get-Process python | Stop-Process -Force</div>
+      <div class="mt-2 text-gray-500"># 2. Delete the old database file</div>
+      <div>Remove-Item ".\instance\tramed.db"</div>
+      <div class="mt-2 text-gray-500"># 3. Restart — app.py seeds fresh DB on startup</div>
+      <div>python app.py</div>
+    </div>
+    <p class="text-gray-600 text-sm leading-relaxed">
+      The app.py startup logic checks <code class="bg-gray-100 px-1 rounded">if not os.path.exists(db_path)</code> and runs <code class="bg-gray-100 px-1 rounded">seed_data.seed(app)</code> automatically when no DB file exists. The seed function calls <code class="bg-gray-100 px-1 rounded">db.drop_all()</code> then <code class="bg-gray-100 px-1 rounded">db.create_all()</code> to create all tables fresh, including the new ones.
+    </p>
+    <p class="text-gray-600 text-sm mt-2 leading-relaxed">
+      <strong>Note for production:</strong> In production, use a proper migration tool (Alembic / Flask-Migrate) instead of dropping and recreating the database. The current approach works for development but would destroy real data.
+    </p>
+  </section>
+
+  <!-- Files summary -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Files Created or Modified</h2>
+    <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+          <tr>
+            <th class="text-left px-4 py-3 font-medium">File</th>
+            <th class="text-left px-4 py-3 font-medium">Action</th>
+            <th class="text-left px-4 py-3 font-medium">What changed</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 text-xs">
+          <tr><td class="px-4 py-2.5 font-mono text-amber-700">database.py</td><td class="px-4 py-2.5 text-amber-600">Modified</td><td class="px-4 py-2.5">Added Customer, MedicationSchedule models. Added customer_id FK to Sale.</td></tr>
+          <tr><td class="px-4 py-2.5 font-mono text-amber-700">seed_data.py</td><td class="px-4 py-2.5 text-amber-600">Modified</td><td class="px-4 py-2.5">Added 8 customers, chronic purchase histories, and pre-built schedules.</td></tr>
+          <tr><td class="px-4 py-2.5 font-mono text-green-700">retention.py</td><td class="px-4 py-2.5 text-green-600">Created</td><td class="px-4 py-2.5">Pattern detection, reminder status engine, WhatsApp message generation.</td></tr>
+          <tr><td class="px-4 py-2.5 font-mono text-amber-700">app.py</td><td class="px-4 py-2.5 text-amber-600">Modified</td><td class="px-4 py-2.5">Added 7 new routes for customer management, schedule management, and messages.</td></tr>
+          <tr><td class="px-4 py-2.5 font-mono text-green-700">templates/customers.html</td><td class="px-4 py-2.5 text-green-600">Created</td><td class="px-4 py-2.5">Customer list with due badges and add-customer form.</td></tr>
+          <tr><td class="px-4 py-2.5 font-mono text-green-700">templates/customer_detail.html</td><td class="px-4 py-2.5 text-green-600">Created</td><td class="px-4 py-2.5">Purchase history, pattern analysis, schedule management.</td></tr>
+          <tr><td class="px-4 py-2.5 font-mono text-green-700">templates/messages.html</td><td class="px-4 py-2.5 text-green-600">Created</td><td class="px-4 py-2.5">WhatsApp action centre with tabbed reminders + supplier reorders.</td></tr>
+          <tr><td class="px-4 py-2.5 font-mono text-amber-700">templates/base.html</td><td class="px-4 py-2.5 text-amber-600">Modified</td><td class="px-4 py-2.5">Added Customers and WhatsApp Messages links to the sidebar nav.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- How the WhatsApp integration works -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">How the WhatsApp Integration Works (No API Required)</h2>
+    <p class="text-gray-600 text-sm leading-relaxed mb-3">
+      A full WhatsApp Business API integration requires API credentials, a verified business number, and message template approvals. For this phase, a simpler approach was used that works immediately with zero setup:
+    </p>
+    <div class="bg-white border border-gray-200 rounded-lg p-4 text-xs font-mono mb-3">
+      https://wa.me/250788123456?text=Hello+Jean%2C%0AThis+is+Pharmacie+Tramed...
+    </div>
+    <ul class="space-y-2 text-sm text-gray-600">
+      <li class="flex gap-2"><span class="text-green-600">→</span> Staff clicks "Open in WhatsApp" on the messages page</li>
+      <li class="flex gap-2"><span class="text-green-600">→</span> WhatsApp opens on their phone or desktop with the message pre-filled</li>
+      <li class="flex gap-2"><span class="text-green-600">→</span> Staff reviews and taps Send</li>
+    </ul>
+    <p class="text-gray-600 text-sm mt-3">
+      When the WhatsApp Business API is added in a future phase, the <code class="bg-gray-100 px-1 rounded">_whatsapp_url()</code> function in <code class="bg-gray-100 px-1 rounded">retention.py</code> is replaced by an API call to <code class="bg-gray-100 px-1 rounded">POST /messages</code> on the WhatsApp Cloud API. The message text generation logic stays exactly the same — only the delivery mechanism changes.
+    </p>
+  </section>
+
+  <div class="text-xs text-gray-400 text-right mt-8 border-t border-gray-200 pt-4">
+    Pharmacie Tramed · Customer Retention Module · Built June 2026
+  </div>
+
+</div>
+</body>
+</html>

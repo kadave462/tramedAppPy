@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(pip install playwright -q)",
+      "PowerShell(python -m playwright install chromium --with-deps 2>&1)",
+      "PowerShell(tail -5)",
+      "PowerShell(pip install playwright -q 2>&1)",
+      "PowerShell(python -m playwright install chromium 2>&1)",
+      "Bash(python -c \"from playwright.sync_api import sync_playwright; print\\('ok'\\)\")",
+      "Bash(python -c ' *)",
+      "Bash(ls \"C:\\\\Users\\\\kaber\\\\AppData\\\\Local\\\\ms-playwright\\\\\" 2>/dev/null || echo \"not ready\")",
+      "Read(//c/Users/kaber/AppData/Local/ms-playwright\" 2>/dev/**)",
+      "PowerShell(Get-ChildItem \"$env:LOCALAPPDATA\\\\ms-playwright\" -ErrorAction SilentlyContinue | Select-Object Name)",
+      "PowerShell(Get-ChildItem \"$env:LOCALAPPDATA\\\\ms-playwright\\\\chromium-1223\\\\chrome-win64\" | Select-Object Name | Select-Object -First 5)"
+    ]
+  }
+}

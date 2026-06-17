@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Automation Notes — Pharmacie Tramed</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans">
+<div class="max-w-4xl mx-auto px-6 py-12">
+
+  <!-- Header -->
+  <div class="mb-10">
+    <div class="text-xs font-semibold text-green-600 uppercase tracking-widest mb-2">Pharmacie Tramed · Build Notes</div>
+    <h1 class="text-4xl font-bold text-gray-900 mb-2">Automation</h1>
+    <p class="text-gray-500 text-sm">What was built, what still needs doing, and exactly how to finish it — June 2026</p>
+  </div>
+
+  <!-- What automation means here -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">What Automation Means in This Project</h2>
+    <p class="text-gray-600 leading-relaxed mb-3">
+      Right now every notification in the system — medication reminders, supplier reorders, loyalty messages — requires a staff member
+      to open the app, find the message, and click "Open in WhatsApp". That is better than nothing but it still depends on a human
+      remembering to check the dashboard.
+    </p>
+    <p class="text-gray-600 leading-relaxed">
+      The goal of automation is to make the system <strong>push information out on its own</strong>, on a schedule,
+      without anyone having to log in. Three jobs have been identified:
+    </p>
+    <div class="mt-4 space-y-3">
+      <div class="flex gap-3 bg-white border border-gray-200 rounded-lg p-4">
+        <span class="text-green-600 font-bold text-sm mt-0.5">1.</span>
+        <div>
+          <div class="text-sm font-semibold text-gray-800">Weekly reorder summary → pharmacist</div>
+          <div class="text-xs text-gray-500 mt-0.5">Every Monday at 08:00, send the pharmacist a WhatsApp listing every product that needs restocking, with urgency level and quantity.</div>
+        </div>
+      </div>
+      <div class="flex gap-3 bg-white border border-gray-200 rounded-lg p-4">
+        <span class="text-gray-400 font-bold text-sm mt-0.5">2.</span>
+        <div>
+          <div class="text-sm font-semibold text-gray-800">Daily medication reminders → patients <span class="text-xs font-normal text-amber-500">(not yet built)</span></div>
+          <div class="text-xs text-gray-500 mt-0.5">Every morning, check all MedicationSchedule rows where next_reminder_date = today and send a personalised WhatsApp to each patient.</div>
+        </div>
+      </div>
+      <div class="flex gap-3 bg-white border border-gray-200 rounded-lg p-4">
+        <span class="text-gray-400 font-bold text-sm mt-0.5">3.</span>
+        <div>
+          <div class="text-sm font-semibold text-gray-800">Weekly supplier reorder messages → suppliers <span class="text-xs font-normal text-amber-500">(not yet built)</span></div>
+          <div class="text-xs text-gray-500 mt-0.5">Every Monday, send each supplier a grouped order message for their products that are running low — the message text already exists, it just needs to be sent automatically.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- What was built -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">What Has Been Built</h2>
+    <div class="space-y-4">
+
+      <div class="bg-white border border-green-200 rounded-lg p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="w-5 h-5 bg-green-500 rounded flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">✓</span>
+          <span class="text-sm font-semibold text-gray-800">APScheduler integrated into Flask (<code class="bg-gray-100 px-1 rounded text-xs">app.py</code>)</span>
+        </div>
+        <p class="text-xs text-gray-500 ml-7">
+          <code class="bg-gray-100 px-1 rounded">flask-apscheduler</code> is configured and started when the app boots.
+          A cron job named <code class="bg-gray-100 px-1 rounded">weekly_reorder_summary</code> is registered to fire every
+          Monday at 08:00. It runs inside the Flask app context so it has full access to the database.
+          <code class="bg-gray-100 px-1 rounded">use_reloader=False</code> is set to prevent the job firing twice in development mode.
+        </p>
+      </div>
+
+      <div class="bg-white border border-green-200 rounded-lg p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="w-5 h-5 bg-green-500 rounded flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">✓</span>
+          <span class="text-sm font-semibold text-gray-800">Notifier module (<code class="bg-gray-100 px-1 rounded text-xs">notifier.py</code>)</span>
+        </div>
+        <p class="text-xs text-gray-500 ml-7">
+          Wraps the Twilio SDK. <code class="bg-gray-100 px-1 rounded">send_whatsapp(to, body)</code> reads credentials from
+          environment variables at call time. If credentials are not configured (still the placeholder values from
+          <code class="bg-gray-100 px-1 rounded">.env</code>), it prints the message to the terminal instead of crashing.
+          This means the scheduling logic works immediately — it just won't send a real WhatsApp until Twilio is set up.
+        </p>
+      </div>
+
+      <div class="bg-white border border-green-200 rounded-lg p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="w-5 h-5 bg-green-500 rounded flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">✓</span>
+          <span class="text-sm font-semibold text-gray-800">Pharmacist summary message builder (<code class="bg-gray-100 px-1 rounded text-xs">retention.py</code>)</span>
+        </div>
+        <p class="text-xs text-gray-500 ml-7">
+          <code class="bg-gray-100 px-1 rounded">get_pharmacist_reorder_summary()</code> queries all products, runs the forecast,
+          and builds one consolidated WhatsApp message with every product that needs restocking — including urgency emoji
+          (🔴 Critical, 🟠 Urgent, 🟡 Soon), days of stock remaining, and recommended order quantity.
+          Returns <code class="bg-gray-100 px-1 rounded">None</code> if all stock is healthy (no message sent that week).
+        </p>
+      </div>
+
+      <div class="bg-white border border-green-200 rounded-lg p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="w-5 h-5 bg-green-500 rounded flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">✓</span>
+          <span class="text-sm font-semibold text-gray-800">Environment config (<code class="bg-gray-100 px-1 rounded text-xs">.env</code>)</span>
+        </div>
+        <p class="text-xs text-gray-500 ml-7">
+          All credentials live in <code class="bg-gray-100 px-1 rounded">.env</code>, loaded at startup via
+          <code class="bg-gray-100 px-1 rounded">python-dotenv</code>. No credentials are hardcoded.
+          The file has placeholder values and comments explaining exactly what each variable is.
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- What still needs doing -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">What Still Needs to Be Done</h2>
+    <div class="space-y-4">
+
+      <!-- Twilio -->
+      <div class="bg-white border border-amber-200 rounded-lg p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="w-5 h-5 border-2 border-amber-400 rounded flex-shrink-0 flex items-center justify-center text-amber-500 text-xs font-bold">!</span>
+          <span class="text-sm font-semibold text-gray-800">1. Set up Twilio and fill in <code class="bg-gray-100 px-1 rounded text-xs">.env</code></span>
+        </div>
+        <p class="text-xs text-gray-500 mb-3 ml-7">Without this, messages print to the terminal but never reach WhatsApp.</p>
+        <div class="ml-7 space-y-2">
+          <div class="text-xs text-gray-600 font-semibold">Steps:</div>
+          <ol class="text-xs text-gray-500 space-y-1.5 list-decimal ml-4">
+            <li>Go to <strong>console.twilio.com</strong> → sign up for a free account</li>
+            <li>From the dashboard, copy your <strong>Account SID</strong> and <strong>Auth Token</strong></li>
+            <li>In the left menu: Messaging → Try it out → Send a WhatsApp message → follow the sandbox join instructions (send a WhatsApp to the sandbox number)</li>
+            <li>The sandbox number is your <code class="bg-gray-100 px-1 rounded">TWILIO_WHATSAPP_FROM</code> (format: <code class="bg-gray-100 px-1 rounded">whatsapp:+14155238886</code>)</li>
+            <li>Open <code class="bg-gray-100 px-1 rounded">tramed/.env</code> and replace the four placeholder values:</li>
+          </ol>
+          <div class="bg-gray-900 text-green-400 font-mono text-xs rounded-lg p-4 mt-2 space-y-1">
+            <div>TWILIO_ACCOUNT_SID=AC<span class="text-yellow-400">your_actual_sid_here</span></div>
+            <div>TWILIO_AUTH_TOKEN=<span class="text-yellow-400">your_actual_token_here</span></div>
+            <div>TWILIO_WHATSAPP_FROM=whatsapp:+14155238886</div>
+            <div>PHARMACIST_WHATSAPP=whatsapp:+250788301960</div>
+          </div>
+          <p class="text-xs text-amber-600 mt-2">
+            ⚠ The sandbox requires every recipient to first send the join message to Twilio. For a real deployment, upgrade to a paid Twilio WhatsApp sender.
+          </p>
+        </div>
+      </div>
+
+      <!-- Server hosting -->
+      <div class="bg-white border border-amber-200 rounded-lg p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="w-5 h-5 border-2 border-amber-400 rounded flex-shrink-0 flex items-center justify-center text-amber-500 text-xs font-bold">!</span>
+          <span class="text-sm font-semibold text-gray-800">2. Host the app on a server that runs 24/7</span>
+        </div>
+        <p class="text-xs text-gray-500 mb-3 ml-7">
+          APScheduler lives inside the Flask process. If the laptop running the app is shut down or closed, the scheduler stops
+          and the Monday 08:00 job never fires. The app needs to run on a machine that is always on.
+        </p>
+        <div class="ml-7 space-y-3">
+          <div class="text-xs text-gray-600 font-semibold">Options (cheapest to most robust):</div>
+          <div class="grid grid-cols-1 gap-2">
+            <div class="bg-gray-50 border border-gray-200 rounded p-3">
+              <div class="text-xs font-semibold text-gray-700">Option A — Railway (recommended for now)</div>
+              <div class="text-xs text-gray-500 mt-1">Free tier available. Push your code to GitHub, connect Railway, it deploys automatically. Supports SQLite. Add your <code class="bg-gray-100 px-0.5 rounded">.env</code> variables in Railway's environment settings.</div>
+              <div class="text-xs text-gray-400 mt-1 font-mono">railway.app → New Project → Deploy from GitHub</div>
+            </div>
+            <div class="bg-gray-50 border border-gray-200 rounded p-3">
+              <div class="text-xs font-semibold text-gray-700">Option B — DigitalOcean Droplet ($6/month)</div>
+              <div class="text-xs text-gray-500 mt-1">A small Ubuntu VPS. Run the Flask app as a systemd service so it restarts automatically on reboot. More control, slightly more setup.</div>
+            </div>
+            <div class="bg-gray-50 border border-gray-200 rounded p-3">
+              <div class="text-xs font-semibold text-gray-700">Option C — Old laptop / Raspberry Pi (pharmacy premises)</div>
+              <div class="text-xs text-gray-500 mt-1">Run the server on-site. Free but dependent on local power and internet. Good for a pilot before spending on cloud hosting.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Daily patient reminders -->
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="w-5 h-5 border-2 border-gray-300 rounded flex-shrink-0"></span>
+          <span class="text-sm font-semibold text-gray-800">3. Build: daily automated patient reminders</span>
+        </div>
+        <p class="text-xs text-gray-500 mb-2 ml-7">
+          The message text already exists in <code class="bg-gray-100 px-1 rounded">retention.py</code> (<code class="bg-gray-100 px-1 rounded">_reminder_message_text</code>).
+          What's missing is a scheduled job that sends it automatically.
+        </p>
+        <div class="ml-7 bg-gray-900 text-green-400 font-mono text-xs rounded-lg p-4 space-y-1">
+          <div class="text-gray-500"># Add this job to app.py next to weekly_reorder_summary</div>
+          <div class="mt-2">@scheduler.task("cron", id="daily_reminders", hour=9, minute=0)</div>
+          <div>def daily_patient_reminders():</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;with app.app_context():</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;from retention import get_due_reminders</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;from notifier import send_whatsapp</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;due = get_due_reminders(days_ahead=0)</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for r in due:</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;send_whatsapp(r["whatsapp_url"], r["message"])</div>
+        </div>
+        <p class="text-xs text-amber-600 mt-2 ml-7">
+          ⚠ Before enabling this, make sure every customer has opted in to receive WhatsApp messages —
+          sending unsolicited messages can get your Twilio number flagged.
+        </p>
+      </div>
+
+      <!-- Weekly supplier reorders -->
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="w-5 h-5 border-2 border-gray-300 rounded flex-shrink-0"></span>
+          <span class="text-sm font-semibold text-gray-800">4. Build: weekly automated supplier reorders</span>
+        </div>
+        <p class="text-xs text-gray-500 mb-2 ml-7">
+          Same pattern as the pharmacist summary but sends to each supplier. The message text and grouping logic already
+          exists in <code class="bg-gray-100 px-1 rounded">get_supplier_reorder_messages()</code>.
+        </p>
+        <div class="ml-7 bg-gray-900 text-green-400 font-mono text-xs rounded-lg p-4 space-y-1">
+          <div>@scheduler.task("cron", id="weekly_supplier_reorders", day_of_week="mon", hour=8, minute=30)</div>
+          <div>def weekly_supplier_reorders():</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;with app.app_context():</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;from retention import get_supplier_reorder_messages</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;from notifier import send_whatsapp</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for sm in get_supplier_reorder_messages():</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;to = "whatsapp:+" + sm["supplier"].phone</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;send_whatsapp(to, sm["message"])</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- How the pieces connect -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">How the Pieces Connect</h2>
+    <div class="bg-white border border-gray-200 rounded-lg p-5">
+      <div class="flex flex-col gap-2 text-xs font-mono">
+        <div class="flex items-center gap-3">
+          <span class="bg-green-100 text-green-700 px-2 py-1 rounded font-semibold">app.py starts</span>
+          <span class="text-gray-400">→</span>
+          <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded">scheduler.start()</span>
+          <span class="text-gray-400">→</span>
+          <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded">cron jobs registered</span>
+        </div>
+        <div class="flex items-center gap-3 ml-8">
+          <span class="text-gray-300">↓ every Monday 08:00</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded font-semibold">weekly_reorder_summary()</span>
+          <span class="text-gray-400">→</span>
+          <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded">get_pharmacist_reorder_summary()</span>
+          <span class="text-gray-400">→</span>
+          <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded">all_product_forecasts()</span>
+        </div>
+        <div class="flex items-center gap-3 ml-8">
+          <span class="text-gray-300">↓ if items found</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="bg-purple-100 text-purple-700 px-2 py-1 rounded font-semibold">notifier.send_whatsapp()</span>
+          <span class="text-gray-400">→</span>
+          <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded">Twilio API</span>
+          <span class="text-gray-400">→</span>
+          <span class="bg-green-100 text-green-700 px-2 py-1 rounded">📱 pharmacist's WhatsApp</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Files involved -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Files Involved in Automation</h2>
+    <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+          <tr>
+            <th class="text-left px-4 py-3 font-medium">File</th>
+            <th class="text-left px-4 py-3 font-medium">Role</th>
+            <th class="text-left px-4 py-3 font-medium">Status</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 text-xs">
+          <tr>
+            <td class="px-4 py-3 font-mono text-green-700">app.py</td>
+            <td class="px-4 py-3 text-gray-600">Initialises APScheduler, registers cron jobs, starts scheduler on boot</td>
+            <td class="px-4 py-3"><span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Done</span></td>
+          </tr>
+          <tr>
+            <td class="px-4 py-3 font-mono text-green-700">notifier.py</td>
+            <td class="px-4 py-3 text-gray-600">Single function <code class="bg-gray-100 px-0.5 rounded">send_whatsapp(to, body)</code> — wraps Twilio, falls back to terminal log</td>
+            <td class="px-4 py-3"><span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Done</span></td>
+          </tr>
+          <tr>
+            <td class="px-4 py-3 font-mono text-green-700">retention.py</td>
+            <td class="px-4 py-3 text-gray-600">Provides <code class="bg-gray-100 px-0.5 rounded">get_pharmacist_reorder_summary()</code> — builds the message content</td>
+            <td class="px-4 py-3"><span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Done</span></td>
+          </tr>
+          <tr>
+            <td class="px-4 py-3 font-mono text-green-700">.env</td>
+            <td class="px-4 py-3 text-gray-600">Holds Twilio credentials and pharmacist number — must be filled in before messages send</td>
+            <td class="px-4 py-3"><span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">Needs credentials</span></td>
+          </tr>
+          <tr>
+            <td class="px-4 py-3 font-mono text-gray-400">requirements.txt</td>
+            <td class="px-4 py-3 text-gray-600">Added: <code class="bg-gray-100 px-0.5 rounded">flask-apscheduler</code>, <code class="bg-gray-100 px-0.5 rounded">twilio</code>, <code class="bg-gray-100 px-0.5 rounded">python-dotenv</code></td>
+            <td class="px-4 py-3"><span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Done</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Checklist -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Completion Checklist</h2>
+    <div class="space-y-2">
+
+      <div class="flex items-start gap-3 bg-green-50 border border-green-200 rounded-lg p-3">
+        <span class="w-5 h-5 bg-green-500 rounded flex-shrink-0 mt-0.5 flex items-center justify-center text-white text-xs font-bold">✓</span>
+        <div><div class="text-sm font-medium text-gray-800">APScheduler wired into Flask</div>
+        <div class="text-xs text-gray-500">Cron job registered — fires every Monday 08:00 inside Flask app context</div></div>
+      </div>
+
+      <div class="flex items-start gap-3 bg-green-50 border border-green-200 rounded-lg p-3">
+        <span class="w-5 h-5 bg-green-500 rounded flex-shrink-0 mt-0.5 flex items-center justify-center text-white text-xs font-bold">✓</span>
+        <div><div class="text-sm font-medium text-gray-800">notifier.py built with Twilio + terminal fallback</div>
+        <div class="text-xs text-gray-500">Safe to run now even without Twilio credentials</div></div>
+      </div>
+
+      <div class="flex items-start gap-3 bg-green-50 border border-green-200 rounded-lg p-3">
+        <span class="w-5 h-5 bg-green-500 rounded flex-shrink-0 mt-0.5 flex items-center justify-center text-white text-xs font-bold">✓</span>
+        <div><div class="text-sm font-medium text-gray-800">Pharmacist summary message content built</div>
+        <div class="text-xs text-gray-500">get_pharmacist_reorder_summary() in retention.py</div></div>
+      </div>
+
+      <div class="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-lg p-3">
+        <span class="w-5 h-5 border-2 border-amber-400 rounded flex-shrink-0 mt-0.5"></span>
+        <div><div class="text-sm font-medium text-gray-800">Install new packages</div>
+        <div class="text-xs text-gray-500 font-mono mt-0.5">pip install flask-apscheduler twilio python-dotenv</div></div>
+      </div>
+
+      <div class="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-lg p-3">
+        <span class="w-5 h-5 border-2 border-amber-400 rounded flex-shrink-0 mt-0.5"></span>
+        <div><div class="text-sm font-medium text-gray-800">Fill in Twilio credentials in .env</div>
+        <div class="text-xs text-gray-500">Sign up at console.twilio.com, get SID + token, join WhatsApp sandbox</div></div>
+      </div>
+
+      <div class="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-lg p-3">
+        <span class="w-5 h-5 border-2 border-amber-400 rounded flex-shrink-0 mt-0.5"></span>
+        <div><div class="text-sm font-medium text-gray-800">Host on a server that runs 24/7</div>
+        <div class="text-xs text-gray-500">Railway (free tier) is the easiest starting point</div></div>
+      </div>
+
+      <div class="flex items-start gap-3 bg-white border border-gray-200 rounded-lg p-3">
+        <span class="w-5 h-5 border-2 border-gray-300 rounded flex-shrink-0 mt-0.5"></span>
+        <div><div class="text-sm font-medium text-gray-800">Build daily patient reminder job</div>
+        <div class="text-xs text-gray-500">Code snippet ready above — add to app.py once Twilio is live and patient consent is confirmed</div></div>
+      </div>
+
+      <div class="flex items-start gap-3 bg-white border border-gray-200 rounded-lg p-3">
+        <span class="w-5 h-5 border-2 border-gray-300 rounded flex-shrink-0 mt-0.5"></span>
+        <div><div class="text-sm font-medium text-gray-800">Build weekly supplier reorder job</div>
+        <div class="text-xs text-gray-500">Code snippet ready above — add to app.py after confirming supplier WhatsApp numbers are correct</div></div>
+      </div>
+
+      <div class="flex items-start gap-3 bg-white border border-gray-200 rounded-lg p-3">
+        <span class="w-5 h-5 border-2 border-gray-300 rounded flex-shrink-0 mt-0.5"></span>
+        <div><div class="text-sm font-medium text-gray-800">Upgrade to Twilio paid WhatsApp sender</div>
+        <div class="text-xs text-gray-500">The free sandbox requires every recipient to opt in manually. A paid number removes this restriction for a production pharmacy.</div></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- How to test without Twilio -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">How to Test the Scheduler Right Now (Without Twilio)</h2>
+    <p class="text-gray-600 text-sm leading-relaxed mb-4">
+      You don't need to wait until Monday or have Twilio credentials to verify the job works.
+      Temporarily change the cron schedule to fire every 2 minutes, restart the app, and watch the terminal.
+    </p>
+    <div class="bg-gray-900 text-green-400 font-mono text-sm rounded-lg p-5 space-y-1">
+      <div class="text-gray-500"># In app.py — change this temporarily:</div>
+      <div>@scheduler.task("cron", id="weekly_reorder_summary", <span class="text-yellow-400">minute="*/2"</span>)</div>
+      <div class="mt-3 text-gray-500"># Restart the app and watch the terminal.</div>
+      <div class="text-gray-500"># You'll see the full WhatsApp message printed every 2 minutes.</div>
+      <div class="mt-3 text-gray-500"># Change back to the real schedule when done:</div>
+      <div>@scheduler.task("cron", id="weekly_reorder_summary", <span class="text-green-400">day_of_week="mon", hour=8, minute=0</span>)</div>
+    </div>
+  </section>
+
+  <div class="text-xs text-gray-400 text-right mt-8 border-t border-gray-200 pt-4">
+    Pharmacie Tramed · Automation Notes · June 2026<br/>
+    Dependencies: flask-apscheduler · twilio · python-dotenv
+  </div>
+
+</div>
+</body>
+</html>

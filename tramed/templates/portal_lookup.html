@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Medications — Pharmacie Tramed</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50:"#f0fdf4", 100:"#dcfce7", 500:"#22c55e", 600:"#16a34a", 700:"#15803d", 900:"#14532d" }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center px-4">
+
+  <div class="w-full max-w-sm">
+    <!-- Logo / Header -->
+    <div class="text-center mb-8">
+      <div class="w-16 h-16 rounded-full bg-brand-600 flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold text-gray-800">Pharmacie Tramed</h1>
+      <p class="text-sm text-gray-500 mt-1">KN 151 St, Kigali</p>
+    </div>
+
+    <!-- Card -->
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+      <h2 class="text-base font-semibold text-gray-800 mb-1">View your medications</h2>
+      <p class="text-sm text-gray-500 mb-5">Enter your phone number to access your refill schedule and purchase history.</p>
+
+      {% if error %}
+      <div class="mb-4 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">
+        {{ error }}
+      </div>
+      {% endif %}
+
+      <form method="post" action="/portal" class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Phone number</label>
+          <input name="phone" type="tel" required placeholder="e.g. 0788 123 456"
+            class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            autofocus />
+        </div>
+        <button type="submit"
+          class="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-3 rounded-xl text-sm transition">
+          View my account →
+        </button>
+      </form>
+    </div>
+
+    <p class="text-center text-xs text-gray-400 mt-6">
+      Having trouble? Call us at <a href="tel:+250788000000" class="underline">+250 788 000 000</a>
+    </p>
+  </div>
+
+</body>
+</html>
