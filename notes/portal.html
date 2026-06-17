@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Customer Portal — Pharmacie Tramed Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50:"#f0fdf4", 100:"#dcfce7", 500:"#22c55e", 600:"#16a34a", 700:"#15803d", 900:"#14532d" }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans">
+<div class="max-w-4xl mx-auto px-6 py-12">
+
+  <!-- Header -->
+  <div class="mb-10">
+    <a href="notes.html" class="text-xs text-green-600 hover:underline">← Back to Project Notes</a>
+    <div class="text-xs font-semibold text-green-600 uppercase tracking-widest mb-2 mt-4">Pharmacie Tramed · Feature Notes</div>
+    <h1 class="text-4xl font-bold text-gray-900 mb-2">Customer Portal</h1>
+    <p class="text-gray-500 text-sm">Public-facing, mobile-first page customers use to view their own account — no staff access · Built June 2026</p>
+  </div>
+
+  <!-- What it is -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">What It Is</h2>
+    <p class="text-gray-600 leading-relaxed mb-3">
+      The customer portal is a <strong>separate, public-facing mini-app</strong> that runs inside the same Flask server.
+      Customers access it from their phones — no app to install, no account to create. They just enter the phone number
+      the pharmacy has on file and they're in.
+    </p>
+    <p class="text-gray-600 leading-relaxed">
+      It is completely separate from the internal staff interface. Customers cannot see inventory, other patients, revenue,
+      or any admin data. It is strictly a read-only personal view.
+    </p>
+  </section>
+
+  <!-- Access flow -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">How a Customer Gets In</h2>
+    <div class="space-y-3">
+      <div class="flex gap-4 items-start">
+        <span class="w-7 h-7 bg-brand-600 text-white rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold">1</span>
+        <div>
+          <div class="text-sm font-semibold text-gray-800">Staff shares the link</div>
+          <p class="text-xs text-gray-500 mt-0.5">Send <code class="bg-gray-100 px-1 rounded">http://localhost:5000/portal</code> via WhatsApp, print on receipts, or display at counter. When deployed it becomes your real domain, e.g. <code class="bg-gray-100 px-1 rounded">tramed.rw/portal</code>.</p>
+        </div>
+      </div>
+      <div class="flex gap-4 items-start">
+        <span class="w-7 h-7 bg-brand-600 text-white rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold">2</span>
+        <div>
+          <div class="text-sm font-semibold text-gray-800">Customer enters their phone number</div>
+          <p class="text-xs text-gray-500 mt-0.5">The lookup is flexible — it matches formatted numbers like <code class="bg-gray-100 px-1 rounded">0788 123 456</code> or trailing digits. No password needed.</p>
+        </div>
+      </div>
+      <div class="flex gap-4 items-start">
+        <span class="w-7 h-7 bg-brand-600 text-white rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold">3</span>
+        <div>
+          <div class="text-sm font-semibold text-gray-800">They land on their personal page</div>
+          <p class="text-xs text-gray-500 mt-0.5">Loyalty card, upcoming refills with countdown, full purchase history — all their own data, no one else's.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Routes -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Routes Added</h2>
+    <div class="space-y-3">
+
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="flex flex-wrap items-center gap-2 mb-2">
+          <span class="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">GET /portal</span>
+          <span class="font-mono text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">POST /portal</span>
+          <span class="font-semibold text-gray-800 text-sm">Phone Lookup</span>
+        </div>
+        <p class="text-xs text-gray-500">
+          GET renders the lookup form (<code class="bg-gray-100 px-0.5 rounded">portal_lookup.html</code>).
+          POST receives the phone number, searches the customers table with a flexible ILIKE match (also tries last 9 digits for formatted numbers),
+          then redirects to <code class="bg-gray-100 px-0.5 rounded">/portal/&lt;id&gt;</code> on success or re-renders the form with an error message.
+        </p>
+      </div>
+
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">GET /portal/&lt;customer_id&gt;</span>
+          <span class="font-semibold text-gray-800 text-sm">Customer Portal</span>
+        </div>
+        <p class="text-xs text-gray-500">
+          Loads the customer, their full sale history (newest first), their loyalty account (if any), and today's date for the refill countdown.
+          Renders <code class="bg-gray-100 px-0.5 rounded">portal.html</code>.
+          Returns 404 if the customer ID doesn't exist.
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Templates -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Templates Created</h2>
+    <div class="space-y-3">
+
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="font-mono text-sm font-semibold text-blue-600 mb-1">templates/portal_lookup.html</div>
+        <p class="text-xs text-gray-500 mb-2">Standalone page (does NOT extend base.html — no staff sidebar). Centred card layout. Shows Pharmacie Tramed logo, phone input, and "View my account →" button. Shows an inline error banner if phone not found.</p>
+        <div class="text-xs text-gray-400">Mobile viewport: 390px wide, vertically centred.</div>
+      </div>
+
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="font-mono text-sm font-semibold text-blue-600 mb-1">templates/portal.html</div>
+        <p class="text-xs text-gray-500 mb-3">Standalone page. Dark green top bar with customer name and "Sign out" link. Three sections:</p>
+        <ul class="text-xs text-gray-500 space-y-1.5 pl-3">
+          <li><strong>Loyalty card</strong> — shows only if the customer has a LoyaltyAccount. Coloured by tier: amber-700 (Bronze), gray-400 (Silver), amber-500 (Gold). Displays current points balance and lifetime total.</li>
+          <li><strong>Upcoming Refills</strong> — all active medication schedules sorted by next_reminder_date. Overdue = red "Refill now" badge. Due within 7 days = amber "In X days" badge. Future dates shown as plain text.</li>
+          <li><strong>Purchase History</strong> — last 15 linked sales, date + product names + amount in RWF. Shows "Showing last 15 purchases" footer if there are more.</li>
+        </ul>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- What customers see vs. don't see -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">What Customers Can and Can't Do</h2>
+    <div class="grid grid-cols-2 gap-4">
+      <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+        <div class="text-xs font-semibold text-green-700 uppercase tracking-wide mb-3">Can see</div>
+        <ul class="text-sm text-gray-700 space-y-1.5">
+          <li>✓ Their loyalty tier and points balance</li>
+          <li>✓ All active medication schedules</li>
+          <li>✓ Next refill date per medication</li>
+          <li>✓ Which medications are overdue</li>
+          <li>✓ Their own purchase history</li>
+          <li>✓ WhatsApp contact link to pharmacy</li>
+        </ul>
+      </div>
+      <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div class="text-xs font-semibold text-red-700 uppercase tracking-wide mb-3">Cannot do</div>
+        <ul class="text-sm text-gray-700 space-y-1.5">
+          <li>✗ Add or modify schedules</li>
+          <li>✗ Mark a refill as renewed</li>
+          <li>✗ See other customers' data</li>
+          <li>✗ Access inventory or pricing</li>
+          <li>✗ See revenue or staff reports</li>
+          <li>✗ Any admin or write action</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Design decisions -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Design Decisions</h2>
+    <div class="space-y-3 text-sm text-gray-600">
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="font-semibold text-gray-800 mb-1">Phone number lookup instead of a password</div>
+        <p class="text-xs text-gray-500">Customers in Kigali predominantly use WhatsApp and don't expect to create accounts at a local pharmacy. The phone number is already in the system. A password would add friction and support overhead for a small team.</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="font-semibold text-gray-800 mb-1">Standalone templates (no staff sidebar)</div>
+        <p class="text-xs text-gray-500">The portal does not extend base.html. This keeps it visually separate from the internal app, prevents any accidental sidebar links showing up, and makes the mobile layout clean with no wasted sidebar space.</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="font-semibold text-gray-800 mb-1">Read-only — no writes from the portal</div>
+        <p class="text-xs text-gray-500">Customers cannot change their schedules. The pharmacist controls medication schedules and the renewal workflow to ensure clinical accuracy. The portal is purely informational.</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="font-semibold text-gray-800 mb-1">390px mobile-first width</div>
+        <p class="text-xs text-gray-500">Most customers will open this on a phone after receiving a WhatsApp link. The layout is designed for a phone screen first — no horizontal scrolling, large tap targets, generous padding.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Files summary -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Files Changed / Created</h2>
+    <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+          <tr>
+            <th class="text-left px-4 py-3 font-medium">File</th>
+            <th class="text-left px-4 py-3 font-medium">Change</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 text-xs">
+          <tr>
+            <td class="px-4 py-3 font-mono text-green-700 font-medium">app.py</td>
+            <td class="px-4 py-3 text-gray-600">Added two new routes: <code class="bg-gray-100 px-0.5 rounded">GET/POST /portal</code> (lookup) and <code class="bg-gray-100 px-0.5 rounded">GET /portal/&lt;id&gt;</code> (customer view)</td>
+          </tr>
+          <tr>
+            <td class="px-4 py-3 font-mono text-blue-600 font-medium">templates/portal_lookup.html</td>
+            <td class="px-4 py-3 text-gray-600">New file — standalone phone lookup page</td>
+          </tr>
+          <tr>
+            <td class="px-4 py-3 font-mono text-blue-600 font-medium">templates/portal.html</td>
+            <td class="px-4 py-3 text-gray-600">New file — customer personal portal (loyalty card + refills + history)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- How to test -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">How to Test</h2>
+    <div class="bg-gray-900 text-green-400 font-mono text-sm rounded-lg p-5 space-y-1">
+      <div><span class="text-gray-500"># 1. Run the server</span></div>
+      <div>python app.py</div>
+      <div class="pt-2"><span class="text-gray-500"># 2. Open the portal lookup page</span></div>
+      <div>http://127.0.0.1:5000/portal</div>
+      <div class="pt-2"><span class="text-gray-500"># 3. Enter a seed customer phone number</span></div>
+      <div>0788 123 456   ← Uwimana Jean (customer 1)</div>
+      <div>0788 234 567   ← Mukamana Alice (customer 2)</div>
+      <div>0788 345 678   ← Habimana Pierre (customer 3)</div>
+      <div class="pt-2"><span class="text-gray-500"># 4. Or go directly to a customer portal</span></div>
+      <div>http://127.0.0.1:5000/portal/1</div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <div class="text-xs text-gray-400 text-right mt-8 border-t border-gray-200 pt-4">
+    Pharmacie Tramed · Customer Portal Module · June 2026
+  </div>
+
+</div>
+</body>
+</html>

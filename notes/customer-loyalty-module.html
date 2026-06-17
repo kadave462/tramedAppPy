@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Customer Loyalty Module — Build Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans">
+<div class="max-w-4xl mx-auto px-6 py-12">
+
+  <div class="mb-10">
+    <div class="text-xs font-semibold text-green-600 uppercase tracking-widest mb-2">Pharmacie Tramed · Build Notes</div>
+    <h1 class="text-4xl font-bold text-gray-900 mb-2">Customer Loyalty Module</h1>
+    <p class="text-gray-500 text-sm">How it was designed, built, debugged, and what every decision means — June 2026</p>
+  </div>
+
+  <!-- The problem -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">The Problem We Were Solving</h2>
+    <p class="text-gray-600 leading-relaxed mb-3">
+      Pharmacie Tramed had no mechanism to reward repeat customers. A patient who buys every month looks identical in Ishyiga to a customer who visited once. There was no incentive built into the system to make loyal customers feel valued or come back faster.
+    </p>
+    <p class="text-gray-600 leading-relaxed">
+      The goal: build a points-based loyalty system that awards points automatically when a customer makes a purchase, notifies them via <strong>WhatsApp in Kinyarwanda</strong> immediately, and lets staff manage everything from a fast counter screen.
+    </p>
+  </section>
+
+  <!-- Logic design discussion -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Step 1 — Logic Design (Before Any Code)</h2>
+    <p class="text-gray-600 text-sm leading-relaxed mb-4">
+      The logic was explained and agreed before building. Key decisions made during this phase:
+    </p>
+    <div class="space-y-3">
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="text-sm font-semibold text-gray-700 mb-1">Points earning rate</div>
+        <p class="text-xs text-gray-500">1 point per 100 RWF spent (base rate). Tier multipliers applied on top. Minimum purchase of 1,000 RWF required — prevents staff awarding points on tiny transactions like a single Paracetamol strip.</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="text-sm font-semibold text-gray-700 mb-1">Tier structure</div>
+        <p class="text-xs text-gray-500">Bronze (0–499 pts, ×1.0) → Silver (500–1,999 pts, ×1.5) → Gold (2,000+ pts, ×2.0). Tier based on <strong>lifetime points earned</strong>, not current balance. This means redemption never causes a tier downgrade — important for customer trust.</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="text-sm font-semibold text-gray-700 mb-1">Redemption</div>
+        <p class="text-xs text-gray-500">100 points = 500 RWF discount. Max redemption per sale = 50% of sale value (prevents gaming). Points must be redeemed in multiples of 100 (clean math, easy to explain at counter).</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="text-sm font-semibold text-gray-700 mb-1">How customers find out they have points</div>
+        <p class="text-xs text-gray-500">Two ways: (1) Staff tells them verbally after award, (2) Automatic WhatsApp message in Kinyarwanda sent the moment points are awarded. The message shows balance, tier, and how close they are to the next tier.</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="text-sm font-semibold text-gray-700 mb-1">How points get recorded at the counter</div>
+        <p class="text-xs text-gray-500">Ishyiga handles the financial transaction (nothing changes there). After the Ishyiga sale is complete, staff opens the Loyalty Counter screen, searches customer by phone, enters the sale amount — points are auto-calculated and awarded in under 10 seconds.</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="text-sm font-semibold text-gray-700 mb-1">WhatsApp language: Kinyarwanda</div>
+        <p class="text-xs text-gray-500">The pharmacy's customers are Rwandan. Messages in Kinyarwanda feel personal and local. English tier names (Bronze/Silver/Gold) are kept since they're internationally recognisable brand concepts.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Database design -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Step 2 — Database Design</h2>
+    <p class="text-gray-600 text-sm leading-relaxed mb-4">Two new tables added to <code class="bg-gray-100 px-1 rounded">database.py</code>:</p>
+    <div class="grid grid-cols-2 gap-4 mb-4">
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="font-mono text-sm font-semibold text-gray-700 mb-2">loyalty_accounts</div>
+        <ul class="text-xs text-gray-500 space-y-1 font-mono">
+          <li>id</li>
+          <li>customer_id → customers.id (unique)</li>
+          <li>points_balance — spendable now</li>
+          <li>lifetime_points — controls tier, never decreases</li>
+          <li>tier — bronze / silver / gold</li>
+          <li>created_at</li>
+        </ul>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="font-mono text-sm font-semibold text-gray-700 mb-2">loyalty_transactions</div>
+        <ul class="text-xs text-gray-500 space-y-1 font-mono">
+          <li>id</li>
+          <li>account_id → loyalty_accounts.id</li>
+          <li>points — positive=earn, negative=redeem</li>
+          <li>transaction_type — earn/redeem/manual</li>
+          <li>sale_id → sales.id (nullable)</li>
+          <li>note — human-readable description</li>
+          <li>created_at</li>
+        </ul>
+      </div>
+    </div>
+    <p class="text-gray-600 text-sm leading-relaxed">
+      <strong>Key design choice:</strong> Two separate point counters — <code class="bg-gray-100 px-1 rounded">points_balance</code> (goes down when redeemed) and <code class="bg-gray-100 px-1 rounded">lifetime_points</code> (never decreases). This is what makes tier levels permanent. A Gold customer who redeems 2,000 points doesn't fall back to Bronze. The <code class="bg-gray-100 px-1 rounded">customer.loyalty</code> relationship uses <code class="bg-gray-100 px-1 rounded">uselist=False</code> because each customer has exactly one loyalty account.
+    </p>
+  </section>
+
+  <!-- loyalty.py -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Step 3 — Building <code class="bg-gray-100 px-1 rounded text-base">loyalty.py</code></h2>
+    <div class="space-y-4">
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="text-sm font-semibold text-gray-700 mb-2"><code class="bg-gray-100 px-1 rounded">points_for_amount(amount, tier)</code></div>
+        <p class="text-xs text-gray-500">Returns 0 if below 1,000 RWF minimum. Otherwise: <code class="bg-gray-100 px-1 rounded">int(amount / 100) × tier_multiplier</code>. Integer division ensures clean whole-point awards.</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="text-sm font-semibold text-gray-700 mb-2"><code class="bg-gray-100 px-1 rounded">award_points(customer_id, amount_rwf)</code></div>
+        <p class="text-xs text-gray-500">Gets or creates the loyalty account. Calculates points. Updates both balance and lifetime. Recalculates tier. Creates a LoyaltyTransaction record. Builds the Kinyarwanda WhatsApp message and wa.me URL. Returns a full result dict. Caller commits the transaction.</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="text-sm font-semibold text-gray-700 mb-2"><code class="bg-gray-100 px-1 rounded">_kinyarwanda_message(customer, pts, account, tier_upgraded)</code></div>
+        <p class="text-xs text-gray-500">
+          Builds the WhatsApp message text. Always in Kinyarwanda. Shows: greeting (Muraho + first name), thank you, points earned today, total balance, RWF value, tier. If tier just upgraded: shows upgrade celebration. If not Gold yet: shows how many points needed to reach next tier (motivational nudge). Uses WhatsApp bold (*text*) formatting.
+        </p>
+        <div class="bg-gray-900 text-green-300 font-mono text-xs rounded p-3 mt-2 whitespace-pre">Muraho Jean 👋
+
+Murakoze kugura kuri Pharmacie Tramed!
+
+✅ Mwinjiye amanota *45* uyu munsi.
+💰 Amanota yanyu: *365 pts*
+    (agaciro: 1,500 RWF)
+🏆 Ingereko: *Bronze 🥉*
+
+⭐ Mukeneye *135 pts* gusa kugira ngo
+   mujye ku ngereko ya Silver 🥈!
+
+Kugira ngo mukoreshe amanota yanyu,
+mubwire nimero ya telefoni igihe mukigurana.
+
+📞 0788 301 960
+Murakoze cyane! 🙏</div>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="text-sm font-semibold text-gray-700 mb-2"><code class="bg-gray-100 px-1 rounded">redeem_points(customer_id, points, sale_amount)</code></div>
+        <p class="text-xs text-gray-500">Validates: account exists, points divisible by 100, balance sufficient, discount ≤ 50% of sale. Deducts from balance only (lifetime stays intact). Creates transaction with negative points.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Counter UX -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Step 4 — The Counter Screen UX</h2>
+    <p class="text-gray-600 text-sm leading-relaxed mb-4">
+      The counter screen is the most important UI in this module — it's used by staff at the pharmacy counter, under time pressure with a customer waiting. The design goal was: phone number → points awarded → WhatsApp sent, in under 15 seconds.
+    </p>
+    <p class="text-gray-600 text-sm font-semibold mb-2">Three-step flow (no page reloads — all AJAX):</p>
+    <div class="space-y-3">
+      <div class="flex gap-3 items-start">
+        <span class="w-6 h-6 rounded-full bg-brand-600 text-white text-xs flex items-center justify-center flex-shrink-0 mt-0.5 font-bold">1</span>
+        <div>
+          <div class="text-sm font-medium text-gray-700">Phone lookup</div>
+          <div class="text-xs text-gray-500">Staff types phone number, presses Enter. A <code class="bg-gray-100 px-1 rounded">GET /api/loyalty/lookup?phone=...</code> call returns the customer card (name, tier, balance, progress to next tier). The card colour changes by tier: orange for Bronze, gray for Silver, yellow for Gold.</div>
+        </div>
+      </div>
+      <div class="flex gap-3 items-start">
+        <span class="w-6 h-6 rounded-full bg-brand-600 text-white text-xs flex items-center justify-center flex-shrink-0 mt-0.5 font-bold">2</span>
+        <div>
+          <div class="text-sm font-medium text-gray-700">Amount entry with live preview</div>
+          <div class="text-xs text-gray-500">Staff types the sale total from the Ishyiga receipt. As they type, a live preview updates: "Uzinjira amanota: 45 pts (×1.5 silver bonus)". If the amount is below 1,000 RWF, a Kinyarwanda warning appears. The Award button stays disabled until the amount qualifies.</div>
+        </div>
+      </div>
+      <div class="flex gap-3 items-start">
+        <span class="w-6 h-6 rounded-full bg-brand-600 text-white text-xs flex items-center justify-center flex-shrink-0 mt-0.5 font-bold">3</span>
+        <div>
+          <div class="text-sm font-medium text-gray-700">Success + WhatsApp</div>
+          <div class="text-xs text-gray-500">After award: a success card shows the new balance, RWF value, and the full Kinyarwanda message preview. Two buttons: "Ohereza WhatsApp" (opens wa.me with message pre-filled) and "Client mushya" (resets for next customer). If tier upgraded, a gold celebration banner appears.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Bugs -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Step 5 — Bugs Found and Fixed</h2>
+    <div class="space-y-4">
+      <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div class="text-sm font-semibold text-red-700 mb-1">Bug 1: <code class="bg-red-100 px-1 rounded">multiple values for keyword argument 'TIERS'</code></div>
+        <p class="text-xs text-red-600 leading-relaxed">
+          <code class="bg-red-100 px-1 rounded">loyalty_summary()</code> already returned <code class="bg-red-100 px-1 rounded">TIERS</code> in its dict. The route then passed <code class="bg-red-100 px-1 rounded">**summary, TIERS=TIERS</code> — two values for the same key. Fix: removed the explicit <code class="bg-red-100 px-1 rounded">TIERS=TIERS</code> kwarg since it's already in <code class="bg-red-100 px-1 rounded">**summary</code>.
+        </p>
+      </div>
+      <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div class="text-sm font-semibold text-red-700 mb-1">Bug 2: <code class="bg-red-100 px-1 rounded">expected token 'end of statement block', got 'ignore'</code></div>
+        <p class="text-xs text-red-600 leading-relaxed">
+          A leftover draft line in <code class="bg-red-100 px-1 rounded">loyalty.html</code>: <code class="bg-red-100 px-1 rounded">{% from 'loyalty_macros.html' import tier_badge ignore missing %}</code>. The Jinja2 syntax for optional imports uses <code class="bg-red-100 px-1 rounded">ignore missing</code> without quotes but only in newer versions. Removed the line entirely since tier badges are rendered inline.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Seed data -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Step 6 — Seeding Loyalty Accounts</h2>
+    <p class="text-gray-600 text-sm leading-relaxed mb-3">
+      When the DB is seeded fresh, loyalty accounts are auto-created for any customer who has linked sales totalling ≥1,000 RWF. The retroactive points calculation:
+    </p>
+    <div class="bg-gray-900 text-green-400 font-mono text-xs rounded-lg p-4 mb-3">
+      <div>total_rwf = sum of all linked sale amounts</div>
+      <div>base_pts  = int(total_rwf / 100)</div>
+      <div>tier      = calculate_tier(base_pts)</div>
+      <div>pts       = int(base_pts × tier_multiplier)</div>
+    </div>
+    <p class="text-gray-600 text-sm">
+      This gives the chronic customers (Jean, Alice, Emmanuel, etc.) a realistic starting balance reflecting their purchase history, so the feature shows real data from day one.
+    </p>
+  </section>
+
+  <!-- Files -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Files Created or Modified</h2>
+    <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+          <tr>
+            <th class="text-left px-4 py-3 font-medium">File</th>
+            <th class="text-left px-4 py-3 font-medium">Action</th>
+            <th class="text-left px-4 py-3 font-medium">What changed</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 text-xs">
+          <tr><td class="px-4 py-2.5 font-mono text-amber-700">database.py</td><td class="px-4 py-2.5 text-amber-600">Modified</td><td class="px-4 py-2.5">Added LoyaltyAccount, LoyaltyTransaction. Added loyalty relationship to Customer.</td></tr>
+          <tr><td class="px-4 py-2.5 font-mono text-green-700">loyalty.py</td><td class="px-4 py-2.5 text-green-600">Created</td><td class="px-4 py-2.5">Full loyalty engine: tier calc, points award, redemption, Kinyarwanda message generator, summary stats.</td></tr>
+          <tr><td class="px-4 py-2.5 font-mono text-amber-700">app.py</td><td class="px-4 py-2.5 text-amber-600">Modified</td><td class="px-4 py-2.5">Added /loyalty, /loyalty/counter, /api/loyalty/lookup, /api/loyalty/award, /api/loyalty/redeem routes.</td></tr>
+          <tr><td class="px-4 py-2.5 font-mono text-green-700">templates/loyalty.html</td><td class="px-4 py-2.5 text-green-600">Created</td><td class="px-4 py-2.5">Loyalty dashboard: summary cards, all members table, tier rules, recent activity.</td></tr>
+          <tr><td class="px-4 py-2.5 font-mono text-green-700">templates/loyalty_counter.html</td><td class="px-4 py-2.5 text-green-600">Created</td><td class="px-4 py-2.5">Counter screen: 3-step AJAX flow (lookup → amount → award + WhatsApp).</td></tr>
+          <tr><td class="px-4 py-2.5 font-mono text-amber-700">templates/customer_detail.html</td><td class="px-4 py-2.5 text-amber-600">Modified</td><td class="px-4 py-2.5">Added loyalty card section: tier badge, balance, RWF value, progress bar, transaction history.</td></tr>
+          <tr><td class="px-4 py-2.5 font-mono text-amber-700">templates/base.html</td><td class="px-4 py-2.5 text-amber-600">Modified</td><td class="px-4 py-2.5">Added Loyalty nav link with star icon.</td></tr>
+          <tr><td class="px-4 py-2.5 font-mono text-amber-700">seed_data.py</td><td class="px-4 py-2.5 text-amber-600">Modified</td><td class="px-4 py-2.5">Auto-creates loyalty accounts for customers with linked sales at seed time.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- What's next -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">What's Next for This Module</h2>
+    <div class="space-y-2 text-sm text-gray-600">
+      <div class="flex gap-2"><span class="text-gray-300">→</span> <span>Connect points awarding to the POS sale entry screen (when built) so points award without a separate lookup step</span></div>
+      <div class="flex gap-2"><span class="text-gray-300">→</span> <span>Add WhatsApp Business API sending so the message is delivered automatically with zero staff action</span></div>
+      <div class="flex gap-2"><span class="text-gray-300">→</span> <span>Add a redemption screen at the counter so staff can apply a discount at checkout</span></div>
+      <div class="flex gap-2"><span class="text-gray-300">→</span> <span>Add a "Points balance" WhatsApp auto-reply — customer texts "AMANOTA" → system replies with their balance</span></div>
+    </div>
+  </section>
+
+  <div class="text-xs text-gray-400 text-right mt-8 border-t border-gray-200 pt-4">
+    Pharmacie Tramed · Customer Loyalty Module · Built June 2026
+  </div>
+
+</div>
+</body>
+</html>

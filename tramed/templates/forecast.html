@@ -1,0 +1,502 @@
+{% extends "base.html" %}
+{% block title %}Demand Forecast — Pharmacie Tramed{% endblock %}
+{% block page_title %}Demand Forecast{% endblock %}
+
+{% block content %}
+
+<!-- Summary strip -->
+<div class="grid grid-cols-4 gap-4 mb-8">
+  <div class="bg-red-50 border border-red-200 rounded-xl p-4 text-center">
+    <div class="text-2xl font-bold text-red-600">{{ counts.critical }}</div>
+    <div class="text-xs font-medium text-red-500 uppercase tracking-wide mt-1">Critical</div>
+    <div class="text-xs text-red-400 mt-0.5">Order immediately</div>
+  </div>
+  <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+    <div class="text-2xl font-bold text-amber-600">{{ counts.urgent }}</div>
+    <div class="text-xs font-medium text-amber-500 uppercase tracking-wide mt-1">Urgent</div>
+    <div class="text-xs text-amber-400 mt-0.5">Order within 3 days</div>
+  </div>
+  <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-center">
+    <div class="text-2xl font-bold text-yellow-600">{{ counts.soon }}</div>
+    <div class="text-xs font-medium text-yellow-500 uppercase tracking-wide mt-1">Order Soon</div>
+    <div class="text-xs text-yellow-400 mt-0.5">Within 2 weeks</div>
+  </div>
+  <div class="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+    <div class="text-2xl font-bold text-green-600">{{ counts.ok }}</div>
+    <div class="text-xs font-medium text-green-500 uppercase tracking-wide mt-1">Sufficient</div>
+    <div class="text-xs text-green-400 mt-0.5">Stock is healthy</div>
+  </div>
+</div>
+
+<!-- WhatsApp reorder buttons -->
+{% if supplier_msgs %}
+<div class="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+  <div class="flex items-center justify-between mb-4 gap-4">
+    <div class="flex items-center gap-2">
+      <svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+      </svg>
+      <h3 class="text-sm font-semibold text-gray-700">Send Reorder via WhatsApp</h3>
+      <span class="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{{ supplier_msgs|length }} supplier{{ 's' if supplier_msgs|length != 1 else '' }}</span>
+    </div>
+    {% if pharmacist_summary %}
+    <a href="{{ pharmacist_summary.whatsapp_url }}" target="_blank"
+      class="flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium px-3 py-2 rounded-lg transition whitespace-nowrap">
+      <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+      </svg>
+      Weekly summary to myself ({{ pharmacist_summary.item_count }} items)
+    </a>
+    {% endif %}
+  </div>
+  <div class="space-y-3">
+    {% for sm in supplier_msgs %}
+    <div class="flex items-start justify-between gap-4 p-3 bg-gray-50 rounded-lg border border-gray-100">
+      <div class="flex-1 min-w-0">
+        <div class="text-sm font-medium text-gray-800">{{ sm.supplier.name }}</div>
+        <div class="text-xs text-gray-500 mt-0.5">
+          {% for line in sm.lines %}
+          <span class="inline-block mr-3">
+            {% if line.urgency == 'critical' %}<span class="text-red-600 font-semibold">⚠ </span>
+            {% elif line.urgency == 'urgent' %}<span class="text-amber-600 font-semibold">⚠ </span>
+            {% endif %}
+            {{ line.product.name }} — {{ line.reorder_qty }} units
+          </span>
+          {% endfor %}
+        </div>
+      </div>
+      <a href="{{ sm.whatsapp_url }}" target="_blank"
+        class="flex-shrink-0 flex items-center gap-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-medium px-3 py-2 rounded-lg transition whitespace-nowrap">
+        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+        </svg>
+        Message {{ sm.supplier.name.split()[0] }}
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Forecast table -->
+<div class="bg-white rounded-xl border border-gray-200 overflow-hidden mb-6">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 border-b border-gray-100">
+      <tr class="text-xs text-gray-500 uppercase font-medium">
+        <th class="text-left px-5 py-3">Product</th>
+        <th class="text-center px-3 py-3">Status</th>
+        <th class="text-right px-3 py-3">In Stock</th>
+        <th class="text-right px-3 py-3">Days Left</th>
+        <th class="text-right px-3 py-3">Avg / Day</th>
+        <th class="text-right px-3 py-3">Next 7d</th>
+        <th class="text-right px-3 py-3">Next 14d</th>
+        <th class="text-right px-3 py-3">Next 30d</th>
+        <th class="text-center px-3 py-3">Trend</th>
+        <th class="text-right px-4 py-3">Reorder Qty</th>
+        <th class="px-4 py-3"></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-50">
+      {% for r in results %}
+      {% set p = r.product %}
+      {% set fc = r.forecast %}
+      {% set rec = r.recommendation %}
+      <tr class="hover:bg-gray-50 transition" id="row-{{ p.id }}">
+
+        <td class="px-5 py-3 font-medium text-gray-800">
+          <div>{{ p.name }}</div>
+          <div class="text-xs text-gray-400">{{ p.category }}</div>
+        </td>
+
+        <td class="px-3 py-3 text-center">
+          {% if rec.urgency == 'critical' %}
+            <span class="bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full font-semibold">Critical</span>
+          {% elif rec.urgency == 'urgent' %}
+            <span class="bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-full font-semibold">Urgent</span>
+          {% elif rec.urgency == 'soon' %}
+            <span class="bg-yellow-100 text-yellow-700 text-xs px-2 py-0.5 rounded-full font-semibold">Soon</span>
+          {% else %}
+            <span class="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full font-semibold">OK</span>
+          {% endif %}
+        </td>
+
+        <td class="px-3 py-3 text-right font-semibold
+          {% if p.stock_quantity == 0 %}text-red-600
+          {% elif rec.urgency in ['critical','urgent'] %}text-amber-600
+          {% else %}text-gray-800{% endif %}">
+          {{ p.stock_quantity }}
+        </td>
+
+        <td class="px-3 py-3 text-right
+          {% if rec.days_remaining <= 3 %}text-red-600 font-semibold
+          {% elif rec.days_remaining <= 10 %}text-amber-600
+          {% else %}text-gray-500{% endif %}">
+          {% if rec.days_remaining >= 999 %}∞{% else %}{{ rec.days_remaining }}d{% endif %}
+        </td>
+
+        <td class="px-3 py-3 text-right text-gray-500">{{ fc.avg_daily }}</td>
+        <td class="px-3 py-3 text-right text-gray-700 font-medium">{{ fc.forecast_7d }}</td>
+        <td class="px-3 py-3 text-right text-gray-700 font-medium">{{ fc.forecast_14d }}</td>
+        <td class="px-3 py-3 text-right text-gray-700 font-medium">{{ fc.forecast_30d }}</td>
+
+        <td class="px-3 py-3 text-center text-lg">
+          {% if fc.trend_label == 'up' %}
+            <span class="text-green-600" title="Demand increasing">↑</span>
+          {% elif fc.trend_label == 'down' %}
+            <span class="text-red-500" title="Demand decreasing">↓</span>
+          {% else %}
+            <span class="text-gray-400" title="Stable demand">→</span>
+          {% endif %}
+        </td>
+
+        <td class="px-4 py-3 text-right font-bold
+          {% if rec.reorder_qty > 0 %}text-brand-700{% else %}text-gray-400{% endif %}">
+          {% if rec.reorder_qty > 0 %}{{ rec.reorder_qty }} units{% else %}—{% endif %}
+        </td>
+
+        <td class="px-4 py-3">
+          <button onclick="showChart({{ p.id }}, '{{ p.name|replace("'", "\\'") }}')"
+            class="text-xs text-brand-600 hover:text-brand-800 font-medium whitespace-nowrap">
+            View Chart
+          </button>
+        </td>
+
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<p class="text-xs text-gray-400 text-right">
+  Model: linear trend (30-day window) + day-of-week seasonality · Lead time: 3 days · Safety buffer: 7 days
+</p>
+
+<!-- ── Forecasting Notes ─────────────────────────────────────────────────── -->
+<details class="mt-6 bg-white rounded-xl border border-gray-200 overflow-hidden">
+  <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none hover:bg-gray-50 transition">
+    <div class="flex items-center gap-2">
+      <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      <span class="text-sm font-semibold text-gray-700">How does this forecast work?</span>
+      <span class="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Algorithm &amp; example</span>
+    </div>
+    <svg class="w-4 h-4 text-gray-400 transition-transform details-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+    </svg>
+  </summary>
+
+  <div class="px-6 pb-7 pt-2 text-sm text-gray-700 border-t border-gray-100">
+
+    <!-- Overview -->
+    <p class="mt-4 text-gray-500 leading-relaxed">
+      The system reads the last <strong>90 days</strong> of real sales from the database, fits a statistical model,
+      and projects forward for the next 30 days. The forecast answers two questions:
+      <em>"How many units will we sell?"</em> and <em>"Do we need to reorder, and how much?"</em>
+    </p>
+
+    <!-- Step-by-step algorithm -->
+    <h3 class="mt-6 mb-3 text-xs font-semibold text-gray-500 uppercase tracking-widest">The Algorithm — 3 Steps</h3>
+
+    <div class="space-y-5">
+
+      <!-- Step 1 -->
+      <div class="flex gap-4">
+        <div class="flex-shrink-0 w-7 h-7 rounded-full bg-brand-100 text-brand-700 text-xs font-bold flex items-center justify-center">1</div>
+        <div>
+          <p class="font-semibold text-gray-800">Day-of-week multipliers <span class="font-normal text-gray-400">(seasonal pattern)</span></p>
+          <p class="text-gray-500 mt-1 leading-relaxed">
+            Pharmacies are busier on certain days. The model computes a multiplier for each day
+            of the week using all 90 days of history.
+            If the overall daily average is <strong>2 units</strong> but Monday's average is <strong>3.2 units</strong>,
+            the Monday multiplier = 3.2 ÷ 2.0 = <strong>1.6</strong>.
+            Sunday at 0.8 units → multiplier = <strong>0.4</strong>.
+          </p>
+          <div class="mt-2 bg-gray-50 rounded-lg px-4 py-2 text-xs text-gray-500 font-mono">
+            multiplier[day] = avg_sales_on_that_day ÷ overall_daily_avg
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="flex gap-4">
+        <div class="flex-shrink-0 w-7 h-7 rounded-full bg-brand-100 text-brand-700 text-xs font-bold flex items-center justify-center">2</div>
+        <div>
+          <p class="font-semibold text-gray-800">Linear trend <span class="font-normal text-gray-400">(last 30 days)</span></p>
+          <p class="text-gray-500 mt-1 leading-relaxed">
+            To find whether demand is rising, falling, or stable, the model removes the day-of-week noise
+            (deseasonalises) and fits a straight line through the last 30 days using <strong>linear regression</strong>
+            (numpy polyfit). The slope of that line is the trend.
+          </p>
+          <div class="mt-2 bg-gray-50 rounded-lg px-4 py-2 text-xs text-gray-500 font-mono">
+            deseasonalised_qty[day] = actual_qty ÷ multiplier[day_of_week]<br/>
+            trend_slope, intercept = polyfit(day_index, deseasonalised_qty)
+          </div>
+          <p class="text-gray-500 mt-2 text-xs">
+            Slope &gt; +0.03 units/day → <span class="text-green-600 font-semibold">↑ Increasing</span> &nbsp;|&nbsp;
+            Slope &lt; −0.03 → <span class="text-red-500 font-semibold">↓ Decreasing</span> &nbsp;|&nbsp;
+            Between → <span class="text-gray-500 font-semibold">→ Stable</span>
+          </p>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="flex gap-4">
+        <div class="flex-shrink-0 w-7 h-7 rounded-full bg-brand-100 text-brand-700 text-xs font-bold flex items-center justify-center">3</div>
+        <div>
+          <p class="font-semibold text-gray-800">Projection <span class="font-normal text-gray-400">(next 30 days)</span></p>
+          <p class="text-gray-500 mt-1 leading-relaxed">
+            Each future day is predicted by applying the trend, then re-multiplying by that day's
+            day-of-week multiplier. The result is clamped to zero (forecasts are never negative).
+          </p>
+          <div class="mt-2 bg-gray-50 rounded-lg px-4 py-2 text-xs text-gray-500 font-mono">
+            predicted[day] = max(0, trend_value × multiplier[day_of_week])
+          </div>
+          <p class="text-gray-500 mt-2 text-xs">The 7d, 14d, and 30d totals in the table are the sums of these daily predictions.</p>
+        </div>
+      </div>
+
+      <!-- Reorder logic -->
+      <div class="flex gap-4">
+        <div class="flex-shrink-0 w-7 h-7 rounded-full bg-amber-100 text-amber-700 text-xs font-bold flex items-center justify-center">R</div>
+        <div>
+          <p class="font-semibold text-gray-800">Reorder recommendation</p>
+          <p class="text-gray-500 mt-1 leading-relaxed">
+            Based on current stock and the forecast, the system calculates how many days of stock remain
+            and whether an order is needed before the supplier can deliver.
+          </p>
+          <div class="mt-2 bg-gray-50 rounded-lg px-4 py-2 text-xs text-gray-500 font-mono">
+            days_remaining  = stock_qty ÷ avg_daily_sales<br/>
+            reorder_qty     = (forecast_14d + avg_daily × 7 safety days) − stock_qty
+          </div>
+          <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
+            <div class="flex items-center gap-2 bg-red-50 rounded-lg px-3 py-2">
+              <span class="w-2 h-2 rounded-full bg-red-500 flex-shrink-0"></span>
+              <span><strong>Critical</strong> — ≤ 3 days left (less than lead time)</span>
+            </div>
+            <div class="flex items-center gap-2 bg-amber-50 rounded-lg px-3 py-2">
+              <span class="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0"></span>
+              <span><strong>Urgent</strong> — 4–10 days left (within safety buffer)</span>
+            </div>
+            <div class="flex items-center gap-2 bg-yellow-50 rounded-lg px-3 py-2">
+              <span class="w-2 h-2 rounded-full bg-yellow-400 flex-shrink-0"></span>
+              <span><strong>Soon</strong> — 11–14 days left</span>
+            </div>
+            <div class="flex items-center gap-2 bg-green-50 rounded-lg px-3 py-2">
+              <span class="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></span>
+              <span><strong>OK</strong> — more than 14 days of stock</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Worked example -->
+    <h3 class="mt-8 mb-3 text-xs font-semibold text-gray-500 uppercase tracking-widest">Worked Example — Paracetamol 500mg</h3>
+
+    <div class="bg-blue-50 border border-blue-100 rounded-xl p-5 space-y-4">
+
+      <div class="grid grid-cols-3 gap-4 text-center">
+        <div class="bg-white rounded-lg p-3 border border-blue-100">
+          <div class="text-lg font-bold text-gray-800">20</div>
+          <div class="text-xs text-gray-500 mt-0.5">Units in stock</div>
+        </div>
+        <div class="bg-white rounded-lg p-3 border border-blue-100">
+          <div class="text-lg font-bold text-gray-800">2.2</div>
+          <div class="text-xs text-gray-500 mt-0.5">Avg units / day</div>
+        </div>
+        <div class="bg-white rounded-lg p-3 border border-blue-100">
+          <div class="text-lg font-bold text-green-600">↑</div>
+          <div class="text-xs text-gray-500 mt-0.5">Trend (increasing)</div>
+        </div>
+      </div>
+
+      <div class="text-xs text-gray-600 space-y-2">
+
+        <p class="font-semibold text-gray-700 text-sm">Step 1 — Seasonality</p>
+        <p>From 90 days of history: overall average = 2.2 units/day.
+          Monday average = 3.5 units → multiplier = 3.5 ÷ 2.2 = <strong>1.59</strong>.
+          Sunday average = 0.9 units → multiplier = 0.9 ÷ 2.2 = <strong>0.41</strong>.</p>
+
+        <p class="font-semibold text-gray-700 text-sm mt-3">Step 2 — Trend</p>
+        <p>After removing seasonality, linear regression on the last 30 days gives a slope of
+          <strong>+0.04 units/day</strong>. Since 0.04 &gt; 0.03, trend = <strong>↑ Increasing</strong>.</p>
+
+        <p class="font-semibold text-gray-700 text-sm mt-3">Step 3 — Projection for next Monday</p>
+        <p>trend_value ≈ 2.2 &nbsp;×&nbsp; Monday multiplier (1.59) = <strong>3.5 units predicted for Monday</strong>.</p>
+        <p>Summing all 14 days ahead gives a 14-day forecast of <strong>~32 units</strong>.</p>
+
+        <p class="font-semibold text-gray-700 text-sm mt-3">Reorder decision</p>
+        <div class="bg-white rounded-lg p-3 border border-blue-100 font-mono text-xs space-y-1">
+          <p>days_remaining = 20 ÷ 2.2 = <strong>9.1 days</strong></p>
+          <p>→ 9.1 days is between 3 and 10 → status = <span class="text-amber-600 font-bold">URGENT</span></p>
+          <p class="mt-1">reorder_qty = (32 + 2.2 × 7) − 20</p>
+          <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= (32 + 15.4) − 20</p>
+          <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= <strong>27 units to order</strong></p>
+        </div>
+        <p class="text-gray-500 mt-2">
+          The 14-day forecast covers the demand during the lead time + safety buffer (3 + 7 = 10 days),
+          and the reorder quantity tops up stock to a comfortable level.
+        </p>
+      </div>
+    </div>
+
+    <!-- Footer note -->
+    <p class="mt-5 text-xs text-gray-400 leading-relaxed">
+      <strong>Limitations:</strong> The model assumes recent trends continue. It does not know about
+      upcoming holidays, supplier stockouts, or new prescriptions. Treat the reorder quantity as a
+      starting point — adjust based on your experience with each supplier.
+    </p>
+
+  </div>
+</details>
+
+<!-- Chart modal -->
+<div id="chartModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6">
+  <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h3 id="chartTitle" class="font-semibold text-gray-800 text-lg"></h3>
+        <p class="text-xs text-gray-400 mt-0.5">Last 30 days actual + next 14 days forecast</p>
+      </div>
+      <button onclick="closeChart()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+    </div>
+    <div id="chartSpinner" class="flex items-center justify-center h-48">
+      <div class="text-gray-400 text-sm">Loading…</div>
+    </div>
+    <canvas id="productChart" class="hidden" height="120"></canvas>
+    <div id="chartStats" class="hidden mt-4 grid grid-cols-3 gap-4 text-center border-t border-gray-100 pt-4">
+      <div>
+        <div class="text-xs text-gray-400 uppercase tracking-wide">Avg / Day</div>
+        <div id="statAvg" class="font-semibold text-gray-800 mt-0.5"></div>
+      </div>
+      <div>
+        <div class="text-xs text-gray-400 uppercase tracking-wide">Forecast 14d</div>
+        <div id="statF14" class="font-semibold text-gray-800 mt-0.5"></div>
+      </div>
+      <div>
+        <div class="text-xs text-gray-400 uppercase tracking-wide">Trend</div>
+        <div id="statTrend" class="font-semibold mt-0.5"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  let productChart = null;
+
+  async function showChart(productId, name) {
+    document.getElementById('chartModal').classList.remove('hidden');
+    document.getElementById('chartTitle').textContent = name;
+    document.getElementById('chartSpinner').classList.remove('hidden');
+    document.getElementById('productChart').classList.add('hidden');
+    document.getElementById('chartStats').classList.add('hidden');
+
+    if (productChart) { productChart.destroy(); productChart = null; }
+
+    const res = await fetch(`/api/product-forecast/${productId}`);
+    const fc = await res.json();
+
+    document.getElementById('chartSpinner').classList.add('hidden');
+    document.getElementById('productChart').classList.remove('hidden');
+    document.getElementById('chartStats').classList.remove('hidden');
+
+    // Historical labels + null forecast placeholders
+    const histLabels = fc.historical_dates;
+    const histData   = fc.historical_qty;
+    // Forecast: connect to last historical point, then project
+    const foreLabels = fc.forecast_dates.slice(0, 14);
+    const foreData   = fc.daily_forecasts.slice(0, 14);
+
+    // Combine into single x-axis
+    const allLabels = [...histLabels, ...foreLabels];
+    const actualLine  = [...histData,   ...Array(foreLabels.length).fill(null)];
+    const forecastLine = [...Array(histLabels.length - 1).fill(null),
+                           histData[histData.length - 1],   // bridge the gap
+                           ...foreData];
+
+    const ctx = document.getElementById('productChart').getContext('2d');
+    productChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: allLabels,
+        datasets: [
+          {
+            label: 'Actual',
+            data: actualLine,
+            borderColor: '#16a34a',
+            backgroundColor: 'rgba(22,163,74,0.07)',
+            borderWidth: 2,
+            pointRadius: 2,
+            tension: 0.3,
+            fill: true,
+            spanGaps: false,
+          },
+          {
+            label: 'Forecast',
+            data: forecastLine,
+            borderColor: '#f59e0b',
+            backgroundColor: 'rgba(245,158,11,0.07)',
+            borderWidth: 2,
+            borderDash: [5, 4],
+            pointRadius: 2,
+            tension: 0.3,
+            fill: false,
+            spanGaps: false,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { labels: { font: { size: 12 }, boxWidth: 14 } }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { maxTicksLimit: 5, font: { size: 11 } },
+            grid: { color: '#f3f4f6' },
+            title: { display: true, text: 'Units sold', font: { size: 11 }, color: '#9ca3af' }
+          },
+          x: {
+            ticks: { maxTicksLimit: 12, font: { size: 10 } },
+            grid: { display: false }
+          }
+        }
+      }
+    });
+
+    // Stats
+    document.getElementById('statAvg').textContent = fc.avg_daily + ' units';
+    document.getElementById('statF14').textContent = fc.forecast_14d + ' units';
+    const trendEl = document.getElementById('statTrend');
+    if (fc.trend_label === 'up') {
+      trendEl.textContent = '↑ Increasing'; trendEl.className = 'font-semibold text-green-600 mt-0.5';
+    } else if (fc.trend_label === 'down') {
+      trendEl.textContent = '↓ Decreasing'; trendEl.className = 'font-semibold text-red-500 mt-0.5';
+    } else {
+      trendEl.textContent = '→ Stable'; trendEl.className = 'font-semibold text-gray-500 mt-0.5';
+    }
+  }
+
+  function closeChart() {
+    document.getElementById('chartModal').classList.add('hidden');
+    if (productChart) { productChart.destroy(); productChart = null; }
+  }
+
+  document.getElementById('chartModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('chartModal')) closeChart();
+  });
+
+  // Rotate the details arrow when open
+  document.querySelector('details').addEventListener('toggle', function () {
+    const arrow = this.querySelector('.details-arrow');
+    arrow.style.transform = this.open ? 'rotate(180deg)' : '';
+  });
+</script>
+{% endblock %}

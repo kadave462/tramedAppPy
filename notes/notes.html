@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pharmacie Tramed — Project Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans">
+<div class="max-w-4xl mx-auto px-6 py-12">
+
+  <!-- Header -->
+  <div class="mb-10">
+    <div class="text-xs font-semibold text-green-600 uppercase tracking-widest mb-2">Pharmacie Tramed · Kigali, Rwanda</div>
+    <h1 class="text-4xl font-bold text-gray-900 mb-2">Project Build Notes</h1>
+    <p class="text-gray-500 text-sm">CS Internship — Digital Transformation &amp; AI Implementation · Updated June 2026</p>
+  </div>
+
+  <!-- What we're building -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">What We're Building</h2>
+    <p class="text-gray-600 leading-relaxed">
+      Pharmacie Tramed already runs <strong>Ishyiga POS</strong> for core transactions — sales recording, stock tracking, and alerts.
+      This project builds the <strong>intelligence layer on top</strong>: turning raw Ishyiga data into predictions, automation, and insights
+      that increase profitability. Every solution is documented as a replicable blueprint for other pharmacies across Rwanda.
+    </p>
+  </section>
+
+  <!-- Tech stack -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Tech Stack</h2>
+    <div class="grid grid-cols-2 gap-3">
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Backend</div>
+        <ul class="space-y-1 text-sm text-gray-700">
+          <li><span class="font-medium">Python 3.13</span> — core language</li>
+          <li><span class="font-medium">Flask 3.0</span> — web framework</li>
+          <li><span class="font-medium">Flask-SQLAlchemy</span> — ORM</li>
+          <li><span class="font-medium">SQLite</span> — local database</li>
+          <li><span class="font-medium">pandas + numpy</span> — data &amp; ML</li>
+        </ul>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Frontend</div>
+        <ul class="space-y-1 text-sm text-gray-700">
+          <li><span class="font-medium">Tailwind CSS</span> — styling (CDN)</li>
+          <li><span class="font-medium">Chart.js 4</span> — charts (CDN)</li>
+          <li><span class="font-medium">Jinja2</span> — HTML templating</li>
+          <li><span class="font-medium">Vanilla JS</span> — interactivity, AJAX</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Files built -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">All Files Built</h2>
+    <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+          <tr>
+            <th class="text-left px-4 py-3 font-medium">File</th>
+            <th class="text-left px-4 py-3 font-medium">Module</th>
+            <th class="text-left px-4 py-3 font-medium">Purpose</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          <!-- Core -->
+          <tr class="bg-gray-50"><td colspan="3" class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide">Python — Core</td></tr>
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3 font-mono text-green-700 font-medium">app.py</td>
+            <td class="px-4 py-3 text-xs text-gray-400">Core</td>
+            <td class="px-4 py-3 text-gray-600">Flask application — all routes, helpers, context processors, startup seeding</td>
+          </tr>
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3 font-mono text-green-700 font-medium">database.py</td>
+            <td class="px-4 py-3 text-xs text-gray-400">Core</td>
+            <td class="px-4 py-3 text-gray-600">All SQLAlchemy models: Supplier, Customer, Product, Sale, SaleItem, MedicationSchedule, LoyaltyAccount, LoyaltyTransaction</td>
+          </tr>
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3 font-mono text-green-700 font-medium">seed_data.py</td>
+            <td class="px-4 py-3 text-xs text-gray-400">Core</td>
+            <td class="px-4 py-3 text-gray-600">Populates DB: 4 suppliers, 30 Rwandan medicines, 8 customers, 90 days of sales history, medication schedules, loyalty accounts</td>
+          </tr>
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3 font-mono text-green-700 font-medium">requirements.txt</td>
+            <td class="px-4 py-3 text-xs text-gray-400">Core</td>
+            <td class="px-4 py-3 text-gray-600">flask, flask-sqlalchemy, pandas, numpy, python-dateutil</td>
+          </tr>
+          <!-- Modules -->
+          <tr class="bg-gray-50"><td colspan="3" class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide">Python — Feature Modules</td></tr>
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3 font-mono text-green-700 font-medium">forecasting.py</td>
+            <td class="px-4 py-3 text-xs text-gray-400">Forecast</td>
+            <td class="px-4 py-3 text-gray-600">Demand forecasting: daily aggregation, linear trend (numpy.polyfit), day-of-week seasonality, reorder recommendations</td>
+          </tr>
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3 font-mono text-green-700 font-medium">retention.py</td>
+            <td class="px-4 py-3 text-xs text-gray-400">Retention</td>
+            <td class="px-4 py-3 text-gray-600">Pattern detection from purchase history, reminder status engine, Kinyarwanda/English WhatsApp message generation for patients and suppliers</td>
+          </tr>
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3 font-mono text-green-700 font-medium">loyalty.py</td>
+            <td class="px-4 py-3 text-xs text-gray-400">Loyalty</td>
+            <td class="px-4 py-3 text-gray-600">Points engine (earn/redeem/manual), tier calculation (Bronze/Silver/Gold), Kinyarwanda WhatsApp notification generator, dashboard summary stats</td>
+          </tr>
+          <!-- Templates -->
+          <tr class="bg-gray-50"><td colspan="3" class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide">Templates</td></tr>
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3 font-mono text-blue-600 font-medium">templates/base.html</td>
+            <td class="px-4 py-3 text-xs text-gray-400">Core</td>
+            <td class="px-4 py-3 text-gray-600">Shared layout — green Tramed sidebar, all nav links, header, Tailwind + Chart.js CDN</td>
+          </tr>
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3 font-mono text-blue-600 font-medium">templates/dashboard.html</td>
+            <td class="px-4 py-3 text-xs text-gray-400">Core</td>
+            <td class="px-4 py-3 text-gray-600">Revenue cards (today/week/month), 7d/30d/90d line chart, category donut chart, low stock alerts, top 5 products</td>
+          </tr>
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3 font-mono text-blue-600 font-medium">templates/inventory.html</td>
+            <td class="px-4 py-3 text-xs text-gray-400">Core</td>
+            <td class="px-4 py-3 text-gray-600">Product table with search, category filter, sell/cost price, margin %, stock status badges, inline stock update modal</td>
+          </tr>
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3 font-mono text-blue-600 font-medium">templates/sales.html</td>
+            <td class="px-4 py-3 text-xs text-gray-400">Core</td>
+            <td class="px-4 py-3 text-gray-600">Paginated sales history, click-to-expand line items, payment method badges (Cash/MoMo/Card)</td>
+          </tr>
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3 font-mono text-blue-600 font-medium">templates/forecast.html</td>
+            <td class="px-4 py-3 text-xs text-gray-400">Forecast</td>
+            <td class="px-4 py-3 text-gray-600">Urgency summary strip, full forecast table per product, "View Chart" modal with 30-day actual + 14-day forecast overlay</td>
+          </tr>
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3 font-mono text-blue-600 font-medium">templates/customers.html</td>
+            <td class="px-4 py-3 text-xs text-gray-400">Retention</td>
+            <td class="px-4 py-3 text-gray-600">Customer list with active schedule counts and "Due" reminder badges, inline Add Customer form</td>
+          </tr>
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3 font-mono text-blue-600 font-medium">templates/customer_detail.html</td>
+            <td class="px-4 py-3 text-xs text-gray-400">Retention</td>
+            <td class="px-4 py-3 text-gray-600">Customer card, loyalty card with tier/balance/progress, auto-detected purchase patterns, medication schedules (add/renew/toggle), purchase history</td>
+          </tr>
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3 font-mono text-blue-600 font-medium">templates/messages.html</td>
+            <td class="px-4 py-3 text-xs text-gray-400">Retention</td>
+            <td class="px-4 py-3 text-gray-600">WhatsApp action centre — tabbed: medication reminders (with urgency badges) and supplier reorders, each with Open in WhatsApp + Copy message</td>
+          </tr>
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3 font-mono text-blue-600 font-medium">templates/loyalty.html</td>
+            <td class="px-4 py-3 text-xs text-gray-400">Loyalty</td>
+            <td class="px-4 py-3 text-gray-600">Loyalty dashboard — member count, points in circulation, all members table sorted by lifetime points, tier rules, recent activity feed</td>
+          </tr>
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3 font-mono text-blue-600 font-medium">templates/loyalty_counter.html</td>
+            <td class="px-4 py-3 text-xs text-gray-400">Loyalty</td>
+            <td class="px-4 py-3 text-gray-600">Counter screen for staff — 3-step AJAX flow: phone lookup → amount entry with live points preview → success + Kinyarwanda WhatsApp message</td>
+          </tr>
+          <!-- Portal -->
+          <tr class="bg-gray-50"><td colspan="3" class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide">Customer Portal (Public-Facing)</td></tr>
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3 font-mono text-blue-600 font-medium">templates/portal_lookup.html</td>
+            <td class="px-4 py-3 text-xs text-gray-400">Portal</td>
+            <td class="px-4 py-3 text-gray-600">Standalone (no staff sidebar) phone-number lookup page — customers enter their number to access their account</td>
+          </tr>
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3 font-mono text-blue-600 font-medium">templates/portal.html</td>
+            <td class="px-4 py-3 text-xs text-gray-400">Portal</td>
+            <td class="px-4 py-3 text-gray-600">Customer personal page — loyalty card (tier + points), upcoming refill schedule with countdown badges, last 15 purchases. Mobile-first, read-only</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Pages & Routes -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">All Pages &amp; Routes</h2>
+
+    <!-- Core pages -->
+    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Core</h3>
+    <div class="space-y-3 mb-6">
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="flex items-center gap-3 mb-1">
+          <span class="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">GET /</span>
+          <span class="font-semibold text-gray-800 text-sm">Dashboard</span>
+        </div>
+        <p class="text-xs text-gray-500">Revenue cards (today/week/month), % change vs yesterday, 7d/30d/90d line chart, category donut, low stock alerts, top 5 products by revenue.</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="flex items-center gap-3 mb-1">
+          <span class="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">GET /inventory</span>
+          <span class="font-semibold text-gray-800 text-sm">Inventory</span>
+        </div>
+        <p class="text-xs text-gray-500">All 30 products with sell/cost price, margin %, stock status (OK/Low/Out). Search + category filter. Inline stock update modal via <code class="bg-gray-100 px-0.5 rounded">POST /api/stock-update</code>.</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="flex items-center gap-3 mb-1">
+          <span class="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">GET /sales</span>
+          <span class="font-semibold text-gray-800 text-sm">Sales History</span>
+        </div>
+        <p class="text-xs text-gray-500">Paginated (25/page), sorted newest first. Click any row to expand and see line items with quantity × unit price. Payment badges: Cash / MoMo / Card.</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="flex items-center gap-3 mb-1">
+          <span class="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">GET /forecast</span>
+          <span class="font-semibold text-gray-800 text-sm">Demand Forecast</span>
+        </div>
+        <p class="text-xs text-gray-500">Critical/Urgent/Soon/OK summary strip. Table: days of stock left, avg daily demand, forecast 7d/14d/30d, trend (↑↓→), reorder qty. "View Chart" modal: 30-day actual + 14-day forecast. WhatsApp reorder panel: items grouped by supplier with pre-filled order message, one green "Message [Supplier]" button per supplier.</p>
+      </div>
+    </div>
+
+    <!-- Retention pages -->
+    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Customer Retention</h3>
+    <div class="space-y-3 mb-6">
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="flex items-center gap-3 mb-1">
+          <span class="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">GET /customers</span>
+          <span class="font-semibold text-gray-800 text-sm">Customer List</span>
+        </div>
+        <p class="text-xs text-gray-500">All customers with active schedule count and "Due" badge if a reminder is owed within 7 days. Inline add-customer form (name, phone, notes). Live search by name or phone via <code class="bg-gray-100 px-0.5 rounded">?q=</code> — count badge switches to "X found" when filtered.</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="flex flex-wrap items-center gap-2 mb-1">
+          <span class="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">GET /customers/&lt;id&gt;</span>
+          <span class="font-semibold text-gray-800 text-sm">Customer Detail</span>
+        </div>
+        <p class="text-xs text-gray-500">Customer card + WhatsApp button, loyalty card (tier/balance/progress bar), auto-detected purchase patterns with one-click "Add Schedule", active/inactive medication schedules with Renewed today + toggle, full linked purchase history.</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="flex items-center gap-3 mb-1">
+          <span class="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">GET /messages</span>
+          <span class="font-semibold text-gray-800 text-sm">WhatsApp Messages</span>
+        </div>
+        <p class="text-xs text-gray-500">Two tabs: (1) Medication Reminders — all due/overdue schedules with pre-written messages, urgency badges, Open in WhatsApp link, Copy button. (2) Supplier Reorders — urgent products grouped by supplier, one message per supplier.</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="flex flex-wrap gap-2 mb-1">
+          <span class="font-mono text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">POST /customers/new</span>
+          <span class="font-mono text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">POST /customers/&lt;id&gt;/schedule/add</span>
+          <span class="font-mono text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">POST /customers/&lt;id&gt;/schedule/&lt;id&gt;/toggle</span>
+          <span class="font-mono text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">POST /customers/&lt;id&gt;/schedule/&lt;id&gt;/renew</span>
+        </div>
+        <p class="text-xs text-gray-500">Form POST routes: create customer, add medication schedule (auto-calculates next_reminder_date = last_purchase + interval - 3 days), activate/deactivate schedule, mark as collected today and reset reminder date.</p>
+      </div>
+    </div>
+
+    <!-- Loyalty pages -->
+    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Customer Loyalty</h3>
+    <div class="space-y-3 mb-6">
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="flex items-center gap-3 mb-1">
+          <span class="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">GET /loyalty</span>
+          <span class="font-semibold text-gray-800 text-sm">Loyalty Dashboard</span>
+        </div>
+        <p class="text-xs text-gray-500">Member count, total points in circulation (and RWF value), Silver/Gold tier counts. All members table sorted by lifetime points. Tier rules reference card. Recent transaction feed.</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="flex items-center gap-3 mb-1">
+          <span class="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">GET /loyalty/counter</span>
+          <span class="font-semibold text-gray-800 text-sm">Counter — Award Points</span>
+        </div>
+        <p class="text-xs text-gray-500">Staff-facing counter screen. Step 1: phone lookup (AJAX, shows tier-coloured customer card with balance + progress). Step 2: enter sale amount, live points preview updates as staff types. Step 3: award → success card + full Kinyarwanda WhatsApp message + "Ohereza WhatsApp" button.</p>
+      </div>
+    </div>
+
+    <!-- Customer portal -->
+    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Customer Portal <span class="text-xs font-normal text-green-600 normal-case">(public-facing)</span></h3>
+    <div class="space-y-3">
+      <div class="bg-white border border-green-200 rounded-lg p-4">
+        <div class="flex flex-wrap items-center gap-2 mb-1">
+          <span class="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">GET /portal</span>
+          <span class="font-mono text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">POST /portal</span>
+          <span class="font-semibold text-gray-800 text-sm">Phone Lookup</span>
+        </div>
+        <p class="text-xs text-gray-500">Standalone page — no staff sidebar. Customer enters their phone number; POST matches it (flexible ILIKE + trailing-digits fallback) and redirects to their portal. Shows inline error if number not found.</p>
+      </div>
+      <div class="bg-white border border-green-200 rounded-lg p-4">
+        <div class="flex items-center gap-3 mb-1">
+          <span class="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">GET /portal/&lt;id&gt;</span>
+          <span class="font-semibold text-gray-800 text-sm">Customer Portal</span>
+        </div>
+        <p class="text-xs text-gray-500">Personal customer page. Shows: loyalty card (tier + points balance, coloured by tier), upcoming refill schedule sorted by next_reminder_date (red badge = overdue, amber = due within 7 days), last 15 linked purchases with date and RWF amount. Read-only — no write actions available to customers. Mobile-first layout (390px).
+          <a href="portal.html" class="text-green-600 underline ml-1">Full portal notes →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- API endpoints -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">All API Endpoints</h2>
+    <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+          <tr>
+            <th class="text-left px-4 py-3 font-medium">Endpoint</th>
+            <th class="text-left px-4 py-3 font-medium">Module</th>
+            <th class="text-left px-4 py-3 font-medium">What it does</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 text-xs">
+          <tr><td class="px-4 py-2.5 font-mono text-gray-700">GET /api/revenue-chart?days=N</td><td class="px-4 py-2.5 text-gray-400">Core</td><td class="px-4 py-2.5 text-gray-600">Daily revenue for last N days — labels + values arrays for Chart.js</td></tr>
+          <tr><td class="px-4 py-2.5 font-mono text-gray-700">GET /api/category-chart</td><td class="px-4 py-2.5 text-gray-400">Core</td><td class="px-4 py-2.5 text-gray-600">Revenue by product category last 30 days — for donut chart</td></tr>
+          <tr><td class="px-4 py-2.5 font-mono text-gray-700">POST /api/stock-update</td><td class="px-4 py-2.5 text-gray-400">Core</td><td class="px-4 py-2.5 text-gray-600">Update a product's stock quantity in place — body: {id, quantity}</td></tr>
+          <tr><td class="px-4 py-2.5 font-mono text-gray-700">GET /api/product-forecast/&lt;id&gt;</td><td class="px-4 py-2.5 text-gray-400">Forecast</td><td class="px-4 py-2.5 text-gray-600">Full forecast object for one product: 30-day history, 30-day daily projection, avg_daily, trend, forecast totals</td></tr>
+          <tr><td class="px-4 py-2.5 font-mono text-gray-700">GET /api/loyalty/lookup?phone=...</td><td class="px-4 py-2.5 text-gray-400">Loyalty</td><td class="px-4 py-2.5 text-gray-600">Find customer by phone, return loyalty account data (tier, balance, RWF value, progress to next tier)</td></tr>
+          <tr><td class="px-4 py-2.5 font-mono text-gray-700">POST /api/loyalty/award</td><td class="px-4 py-2.5 text-gray-400">Loyalty</td><td class="px-4 py-2.5 text-gray-600">Award points for a purchase — body: {customer_id, amount_rwf}. Returns points earned, new balance, tier, Kinyarwanda message + wa.me URL</td></tr>
+          <tr><td class="px-4 py-2.5 font-mono text-gray-700">POST /api/loyalty/redeem</td><td class="px-4 py-2.5 text-gray-400">Loyalty</td><td class="px-4 py-2.5 text-gray-600">Redeem points for a discount — body: {customer_id, points, sale_amount}. Validates 50% cap and 100-point multiples</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Database schema -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Database Schema (All Tables)</h2>
+    <div class="grid grid-cols-2 gap-4">
+
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="font-mono text-sm font-semibold text-gray-700 mb-2">suppliers</div>
+        <ul class="text-xs text-gray-500 space-y-0.5 font-mono">
+          <li>id, name</li>
+          <li>phone, email</li>
+        </ul>
+      </div>
+
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="font-mono text-sm font-semibold text-gray-700 mb-2">products</div>
+        <ul class="text-xs text-gray-500 space-y-0.5 font-mono">
+          <li>id, name, category</li>
+          <li>unit_price, cost_price</li>
+          <li>stock_quantity, min_stock_level</li>
+          <li>supplier_id → suppliers.id</li>
+        </ul>
+      </div>
+
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="font-mono text-sm font-semibold text-gray-700 mb-2">customers</div>
+        <ul class="text-xs text-gray-500 space-y-0.5 font-mono">
+          <li>id, name, phone</li>
+          <li>notes, created_at</li>
+        </ul>
+        <div class="text-xs text-green-600 mt-2 font-medium">Customer Retention Module</div>
+      </div>
+
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="font-mono text-sm font-semibold text-gray-700 mb-2">sales</div>
+        <ul class="text-xs text-gray-500 space-y-0.5 font-mono">
+          <li>id, created_at</li>
+          <li>total_amount, payment_method</li>
+          <li class="text-green-600">customer_id → customers.id (nullable)</li>
+        </ul>
+        <div class="text-xs text-green-600 mt-2 font-medium">customer_id added: Retention Module</div>
+      </div>
+
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="font-mono text-sm font-semibold text-gray-700 mb-2">sale_items</div>
+        <ul class="text-xs text-gray-500 space-y-0.5 font-mono">
+          <li>id</li>
+          <li>sale_id → sales.id</li>
+          <li>product_id → products.id</li>
+          <li>quantity, unit_price</li>
+        </ul>
+      </div>
+
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="font-mono text-sm font-semibold text-gray-700 mb-2">medication_schedules</div>
+        <ul class="text-xs text-gray-500 space-y-0.5 font-mono">
+          <li>id</li>
+          <li>customer_id → customers.id</li>
+          <li>product_id → products.id</li>
+          <li>interval_days</li>
+          <li>last_purchase_date</li>
+          <li>next_reminder_date</li>
+          <li>active (bool), notes, created_at</li>
+        </ul>
+        <div class="text-xs text-green-600 mt-2 font-medium">Customer Retention Module</div>
+      </div>
+
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="font-mono text-sm font-semibold text-gray-700 mb-2">loyalty_accounts</div>
+        <ul class="text-xs text-gray-500 space-y-0.5 font-mono">
+          <li>id</li>
+          <li>customer_id → customers.id (unique)</li>
+          <li>points_balance — spendable now</li>
+          <li>lifetime_points — never decreases</li>
+          <li>tier — bronze/silver/gold</li>
+          <li>created_at</li>
+        </ul>
+        <div class="text-xs text-green-600 mt-2 font-medium">Customer Loyalty Module</div>
+      </div>
+
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="font-mono text-sm font-semibold text-gray-700 mb-2">loyalty_transactions</div>
+        <ul class="text-xs text-gray-500 space-y-0.5 font-mono">
+          <li>id</li>
+          <li>account_id → loyalty_accounts.id</li>
+          <li>points (+earn / −redeem)</li>
+          <li>transaction_type (earn/redeem/manual)</li>
+          <li>sale_id → sales.id (nullable)</li>
+          <li>note, created_at</li>
+        </ul>
+        <div class="text-xs text-green-600 mt-2 font-medium">Customer Loyalty Module</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Forecasting model -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Forecasting Model — How It Works</h2>
+    <div class="space-y-3 text-sm text-gray-600 leading-relaxed">
+      <div class="flex gap-3">
+        <span class="bg-green-100 text-green-700 font-semibold text-xs px-2 py-1 rounded h-fit mt-0.5">1</span>
+        <p><strong>Daily aggregation:</strong> Pulls all SaleItems for a product over the last 90 days, groups by date, fills missing days with zero — complete daily time series.</p>
+      </div>
+      <div class="flex gap-3">
+        <span class="bg-green-100 text-green-700 font-semibold text-xs px-2 py-1 rounded h-fit mt-0.5">2</span>
+        <p><strong>Day-of-week multipliers:</strong> Each weekday's mean is divided by the overall mean to produce a multiplier (e.g. Mondays sell 30% more → 1.3). Captures weekly pharmacy traffic patterns.</p>
+      </div>
+      <div class="flex gap-3">
+        <span class="bg-green-100 text-green-700 font-semibold text-xs px-2 py-1 rounded h-fit mt-0.5">3</span>
+        <p><strong>Linear trend fit:</strong> Deseasonalises the last 30 days, then fits linear regression via <code class="bg-gray-100 px-1 rounded">numpy.polyfit</code>. Slope shows whether demand is growing or shrinking.</p>
+      </div>
+      <div class="flex gap-3">
+        <span class="bg-green-100 text-green-700 font-semibold text-xs px-2 py-1 rounded h-fit mt-0.5">4</span>
+        <p><strong>Forward projection:</strong> <em>predicted_day = trend(index) × dow_multiplier</em>, clamped ≥0. Produces a 30-day daily forecast.</p>
+      </div>
+      <div class="flex gap-3">
+        <span class="bg-green-100 text-green-700 font-semibold text-xs px-2 py-1 rounded h-fit mt-0.5">5</span>
+        <p><strong>Reorder logic:</strong> <code class="bg-gray-100 px-1 rounded">reorder_qty = forecast_14d + (avg_daily × 7 safety days) − current_stock</code>. Lead time 3 days. Urgency: Critical ≤ lead time, Urgent ≤ safety buffer, Soon ≤ 14 days, OK otherwise.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Loyalty model -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Loyalty Points Rules</h2>
+    <div class="grid grid-cols-2 gap-4">
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="text-sm font-semibold text-gray-700 mb-3">Earning</div>
+        <ul class="text-xs text-gray-500 space-y-1.5">
+          <li>• Minimum purchase: <strong>1,000 RWF</strong></li>
+          <li>• Base rate: <strong>1 pt per 100 RWF</strong></li>
+          <li>• Bronze ×1.0 · Silver ×1.5 · Gold ×2.0</li>
+          <li>• Tier based on lifetime points (never resets)</li>
+        </ul>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="text-sm font-semibold text-gray-700 mb-3">Tiers &amp; Redemption</div>
+        <ul class="text-xs text-gray-500 space-y-1.5">
+          <li>• Bronze: 0–499 pts · Silver: 500–1,999 pts · Gold: 2,000+</li>
+          <li>• Redemption: <strong>100 pts = 500 RWF</strong> discount</li>
+          <li>• Max redemption per sale: 50% of sale value</li>
+          <li>• WhatsApp notification: Kinyarwanda, auto-generated</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- What's done and what's next -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Build Status</h2>
+    <div class="space-y-2">
+
+      <div class="flex items-start gap-3 bg-green-50 border border-green-200 rounded-lg p-3">
+        <span class="w-5 h-5 bg-green-500 rounded flex-shrink-0 mt-0.5 flex items-center justify-center text-white text-xs font-bold">✓</span>
+        <div><div class="text-sm font-medium text-gray-800">Dashboard, Inventory, Sales History</div>
+        <div class="text-xs text-gray-500">Core revenue cards, charts, stock management, paginated sales</div></div>
+      </div>
+
+      <div class="flex items-start gap-3 bg-green-50 border border-green-200 rounded-lg p-3">
+        <span class="w-5 h-5 bg-green-500 rounded flex-shrink-0 mt-0.5 flex items-center justify-center text-white text-xs font-bold">✓</span>
+        <div><div class="text-sm font-medium text-gray-800">Demand Forecasting Model</div>
+        <div class="text-xs text-gray-500">Linear trend + day-of-week seasonality, reorder recommendations, per-product charts</div></div>
+      </div>
+
+      <div class="flex items-start gap-3 bg-green-50 border border-green-200 rounded-lg p-3">
+        <span class="w-5 h-5 bg-green-500 rounded flex-shrink-0 mt-0.5 flex items-center justify-center text-white text-xs font-bold">✓</span>
+        <div><div class="text-sm font-medium text-gray-800">Customer Retention Module</div>
+        <div class="text-xs text-gray-500">Customer profiles, purchase history, medication schedules, pattern detection, WhatsApp message centre (reminders + supplier reorders)</div></div>
+      </div>
+
+      <div class="flex items-start gap-3 bg-green-50 border border-green-200 rounded-lg p-3">
+        <span class="w-5 h-5 bg-green-500 rounded flex-shrink-0 mt-0.5 flex items-center justify-center text-white text-xs font-bold">✓</span>
+        <div><div class="text-sm font-medium text-gray-800">Customer Loyalty Programme</div>
+        <div class="text-xs text-gray-500">Points engine, 3 tiers, counter screen, Kinyarwanda WhatsApp notifications, redemption logic</div></div>
+      </div>
+
+      <div class="flex items-start gap-3 bg-green-50 border border-green-200 rounded-lg p-3">
+        <span class="w-5 h-5 bg-green-500 rounded flex-shrink-0 mt-0.5 flex items-center justify-center text-white text-xs font-bold">✓</span>
+        <div>
+          <div class="text-sm font-medium text-gray-800">Customer Portal <span class="text-xs font-normal text-green-600">(public-facing)</span></div>
+          <div class="text-xs text-gray-500">Phone-number lookup, personal page with loyalty card + refill schedule + purchase history. Mobile-first, read-only. Routes: <code class="bg-green-100 px-0.5 rounded">GET/POST /portal</code> · <code class="bg-green-100 px-0.5 rounded">GET /portal/&lt;id&gt;</code>.
+            <a href="portal.html" class="text-green-600 underline ml-1">See portal notes →</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-start gap-3 bg-white border border-gray-200 rounded-lg p-3">
+        <span class="w-5 h-5 border-2 border-gray-300 rounded flex-shrink-0 mt-0.5"></span>
+        <div><div class="text-sm font-medium text-gray-800">Ishyiga CSV Import</div>
+        <div class="text-xs text-gray-500">Replace seed data with real Ishyiga exports so forecast and loyalty run on live data</div></div>
+      </div>
+
+      <div class="flex items-start gap-3 bg-white border border-gray-200 rounded-lg p-3">
+        <span class="w-5 h-5 border-2 border-gray-300 rounded flex-shrink-0 mt-0.5"></span>
+        <div><div class="text-sm font-medium text-gray-800">POS / New Sale Entry Screen</div>
+        <div class="text-xs text-gray-500">Record a sale directly in the system — auto-links customer, auto-awards loyalty points</div></div>
+      </div>
+
+      <div class="flex items-start gap-3 bg-white border border-gray-200 rounded-lg p-3">
+        <span class="w-5 h-5 border-2 border-gray-300 rounded flex-shrink-0 mt-0.5"></span>
+        <div><div class="text-sm font-medium text-gray-800">WhatsApp Business API</div>
+        <div class="text-xs text-gray-500">Replace wa.me links with actual API sending — makes reminders and loyalty notifications zero-touch</div></div>
+      </div>
+
+      <div class="flex items-start gap-3 bg-white border border-gray-200 rounded-lg p-3">
+        <span class="w-5 h-5 border-2 border-gray-300 rounded flex-shrink-0 mt-0.5"></span>
+        <div><div class="text-sm font-medium text-gray-800">Stock Anomaly Detection</div>
+        <div class="text-xs text-gray-500">Flag stock drops that don't match sales records (potential loss or theft)</div></div>
+      </div>
+
+      <div class="flex items-start gap-3 bg-white border border-gray-200 rounded-lg p-3">
+        <span class="w-5 h-5 border-2 border-gray-300 rounded flex-shrink-0 mt-0.5"></span>
+        <div><div class="text-sm font-medium text-gray-800">Customer Segmentation (ML)</div>
+        <div class="text-xs text-gray-500">Group customers by purchase behaviour for targeted communication and personalised loyalty offers</div></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Recent changes -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Recent Changes <span class="text-sm font-normal text-gray-400">— June 2026</span></h2>
+    <div class="space-y-3">
+
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-xs font-semibold bg-red-100 text-red-600 px-2 py-0.5 rounded">Bug Fix</span>
+          <span class="text-sm font-medium text-gray-800">Jinja2 TemplateSyntaxError on <code class="bg-gray-100 px-1 rounded">customers/&lt;id&gt;</code></span>
+        </div>
+        <p class="text-xs text-gray-500">
+          <code class="bg-gray-100 px-1 rounded">customer_detail.html</code> line 76 used <code class="bg-gray-100 px-1 rounded">|list[:5]</code> inside a <code class="bg-gray-100 px-1 rounded">&#123;% for %&#125;</code> block.
+          Jinja2 does not allow slice notation directly after a filter — the parser expects <code class="bg-gray-100 px-1 rounded">%&#125;</code>, not <code class="bg-gray-100 px-1 rounded">[</code>.
+          Fixed by wrapping in parentheses: <code class="bg-gray-100 px-1 rounded">(acct.transactions|sort(...)|list)[:5]</code>.
+        </p>
+      </div>
+
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-xs font-semibold bg-red-100 text-red-600 px-2 py-0.5 rounded">Bug Fix</span>
+          <span class="text-sm font-medium text-gray-800">UndefinedError: 'today' is undefined on <code class="bg-gray-100 px-1 rounded">customers/&lt;id&gt;</code></span>
+        </div>
+        <p class="text-xs text-gray-500">
+          The template uses <code class="bg-gray-100 px-1 rounded">today.date()</code> (reminder date comparison) and <code class="bg-gray-100 px-1 rounded">today.strftime(...)</code> (default date input value) but <code class="bg-gray-100 px-1 rounded">today</code> was never passed by the <code class="bg-gray-100 px-1 rounded">customer_detail</code> route.
+          Fixed by adding <code class="bg-gray-100 px-1 rounded">today=datetime.now()</code> to the <code class="bg-gray-100 px-1 rounded">render_template</code> call in <code class="bg-gray-100 px-1 rounded">app.py</code>.
+        </p>
+      </div>
+
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-xs font-semibold bg-blue-100 text-blue-600 px-2 py-0.5 rounded">Feature</span>
+          <span class="text-sm font-medium text-gray-800">Customer search on <code class="bg-gray-100 px-1 rounded">/customers</code></span>
+        </div>
+        <p class="text-xs text-gray-500">
+          Added a search bar in the customer list header. Filters by name or phone (case-insensitive <code class="bg-gray-100 px-1 rounded">ilike</code>) via <code class="bg-gray-100 px-1 rounded">?q=</code> query param — no JavaScript needed, plain GET form.
+          A "Clear" link appears when a search is active. The count badge switches from "X registered" to "X found" when filtered.
+          Changes: <code class="bg-gray-100 px-1 rounded">app.py</code> (route reads <code class="bg-gray-100 px-1 rounded">q</code>, filters query, passes <code class="bg-gray-100 px-1 rounded">q</code> to template) + <code class="bg-gray-100 px-1 rounded">customers.html</code> (search form in header).
+        </p>
+      </div>
+
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-xs font-semibold bg-green-100 text-green-600 px-2 py-0.5 rounded">Feature</span>
+          <span class="text-sm font-medium text-gray-800">WhatsApp reorder notifications on <code class="bg-gray-100 px-1 rounded">/forecast</code></span>
+        </div>
+        <p class="text-xs text-gray-500">
+          The forecast page now shows a "Send Reorder via WhatsApp" panel between the summary strip and the table.
+          It reuses the existing <code class="bg-gray-100 px-1 rounded">get_supplier_reorder_messages()</code> function from <code class="bg-gray-100 px-1 rounded">retention.py</code> (which groups critical/urgent/soon products by supplier and builds a pre-written order message).
+          Each supplier gets one row: product list with urgency markers (⚠ for critical/urgent) and a green WhatsApp button that opens the message pre-filled.
+          Panel is hidden when all stock is healthy.
+          Changes: <code class="bg-gray-100 px-1 rounded">app.py</code> (passes <code class="bg-gray-100 px-1 rounded">supplier_msgs</code> to forecast template) + <code class="bg-gray-100 px-1 rounded">forecast.html</code> (new panel).
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- How to run -->
+  <section class="mb-4">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">How to Run</h2>
+    <div class="bg-gray-900 text-green-400 font-mono text-sm rounded-lg p-5 space-y-1">
+      <div><span class="text-gray-500"># 1. Install dependencies</span></div>
+      <div>pip install flask flask-sqlalchemy pandas numpy python-dateutil</div>
+      <div class="pt-2"><span class="text-gray-500"># 2. Start the server (auto-seeds DB on first run)</span></div>
+      <div>python app.py</div>
+      <div class="pt-2"><span class="text-gray-500"># 3. Open in browser</span></div>
+      <div>http://127.0.0.1:5000</div>
+      <div class="pt-2"><span class="text-gray-500"># Reset DB (after model changes)</span></div>
+      <div>del instance\tramed.db &amp;&amp; python app.py</div>
+    </div>
+  </section>
+
+  <div class="text-xs text-gray-400 text-right mt-8 border-t border-gray-200 pt-4">
+    Built with Python · Flask · SQLite · Tailwind CSS · Chart.js · pandas · numpy<br/>
+    Modules: Dashboard · Inventory · Sales · Demand Forecast · Customer Retention · Customer Loyalty · Customer Portal
+  </div>
+
+</div>
+</body>
+</html>

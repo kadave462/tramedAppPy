@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Forecasting Module and Logic — Pharmacie Tramed</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans">
+<div class="max-w-4xl mx-auto px-6 py-12">
+
+  <!-- Header -->
+  <div class="mb-10">
+    <div class="text-xs font-semibold text-green-600 uppercase tracking-widest mb-2">Pharmacie Tramed · Build Notes</div>
+    <h1 class="text-4xl font-bold text-gray-900 mb-2">Forecasting Module and Logic</h1>
+    <p class="text-gray-500 text-sm">How the demand forecast works, the algorithm behind it, and a full worked example — June 2026</p>
+  </div>
+
+  <!-- What it does -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">What This Module Does</h2>
+    <p class="text-gray-600 leading-relaxed mb-3">
+      The system reads the last <strong>90 days</strong> of real sales from the database, fits a statistical model,
+      and projects demand forward for the next 30 days. The forecast answers two questions:
+    </p>
+    <ul class="mt-3 space-y-2 text-gray-600 text-sm">
+      <li class="flex gap-2">
+        <span class="text-green-600 font-bold">1.</span>
+        <span><strong>How many units will we sell?</strong> — per product, per day, over the next 7, 14, and 30 days.</span>
+      </li>
+      <li class="flex gap-2">
+        <span class="text-green-600 font-bold">2.</span>
+        <span><strong>Do we need to reorder, and how much?</strong> — urgency level (Critical / Urgent / Soon / OK) and the recommended quantity to order from the supplier.</span>
+      </li>
+    </ul>
+    <p class="text-gray-600 leading-relaxed mt-4">
+      The module lives in <code class="bg-gray-100 px-1 rounded">forecasting.py</code> and is called by the
+      <code class="bg-gray-100 px-1 rounded">/forecast</code> page and the Monday 08:00 automated WhatsApp summary.
+    </p>
+  </section>
+
+  <!-- The Algorithm -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">The Algorithm — 3 Steps</h2>
+
+    <!-- Step 1 -->
+    <div class="mb-8">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-8 h-8 rounded-full bg-green-100 text-green-700 text-sm font-bold flex items-center justify-center flex-shrink-0">1</div>
+        <h3 class="font-semibold text-gray-800 text-base">Day-of-week multipliers <span class="font-normal text-gray-400 text-sm">(seasonal pattern)</span></h3>
+      </div>
+      <p class="text-gray-600 leading-relaxed mb-3 ml-11">
+        Pharmacies are not equally busy every day. Mondays tend to be busier because patients
+        collect medication at the start of the week; Sundays are quieter. The model captures this
+        by computing a multiplier for each day of the week using all 90 days of sales history.
+      </p>
+      <p class="text-gray-600 leading-relaxed mb-3 ml-11">
+        For example, if the overall daily average across all 90 days is <strong>2.0 units</strong>,
+        but Monday's average is <strong>3.2 units</strong>, then:
+      </p>
+      <div class="ml-11 bg-gray-900 text-green-400 font-mono text-sm rounded-lg p-4 mb-3">
+        multiplier[Monday] = 3.2 ÷ 2.0 = <strong>1.6</strong><br/>
+        multiplier[Sunday] = 0.8 ÷ 2.0 = <strong>0.4</strong><br/><br/>
+        <span class="text-gray-400"># General formula:</span><br/>
+        multiplier[day] = avg_sales_on_that_day ÷ overall_daily_avg
+      </div>
+      <p class="text-gray-600 text-sm ml-11">
+        A multiplier above 1.0 means that day is busier than average. Below 1.0 means quieter.
+        This is applied again in Step 3 when projecting future days.
+      </p>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="mb-8">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-8 h-8 rounded-full bg-green-100 text-green-700 text-sm font-bold flex items-center justify-center flex-shrink-0">2</div>
+        <h3 class="font-semibold text-gray-800 text-base">Linear trend <span class="font-normal text-gray-400 text-sm">(last 30 days)</span></h3>
+      </div>
+      <p class="text-gray-600 leading-relaxed mb-3 ml-11">
+        To find whether demand is rising, falling, or stable, the model first removes the
+        day-of-week noise (called <em>deseasonalisation</em>) from the last 30 days of sales.
+        It then fits a straight line through those corrected values using
+        <strong>linear regression</strong> (numpy <code class="bg-gray-100 px-1 rounded">polyfit</code>).
+        The slope of that line is the trend.
+      </p>
+      <div class="ml-11 bg-gray-900 text-green-400 font-mono text-sm rounded-lg p-4 mb-3">
+        <span class="text-gray-400"># Remove day-of-week noise first:</span><br/>
+        deseasonalised_qty[day] = actual_qty ÷ multiplier[day_of_week]<br/><br/>
+        <span class="text-gray-400"># Then fit a line through the cleaned data:</span><br/>
+        trend_slope, intercept = polyfit(day_index, deseasonalised_qty)
+      </div>
+      <div class="ml-11 bg-white border border-gray-200 rounded-lg p-4 text-sm">
+        <div class="grid grid-cols-3 gap-4 text-center">
+          <div>
+            <div class="text-green-600 font-bold text-lg">↑</div>
+            <div class="text-xs text-gray-500 mt-1">Slope &gt; +0.03 units/day<br/><strong>Increasing</strong></div>
+          </div>
+          <div>
+            <div class="text-gray-500 font-bold text-lg">→</div>
+            <div class="text-xs text-gray-500 mt-1">Between −0.03 and +0.03<br/><strong>Stable</strong></div>
+          </div>
+          <div>
+            <div class="text-red-500 font-bold text-lg">↓</div>
+            <div class="text-xs text-gray-500 mt-1">Slope &lt; −0.03 units/day<br/><strong>Decreasing</strong></div>
+          </div>
+        </div>
+      </div>
+      <p class="text-gray-600 text-sm mt-3 ml-11">
+        The threshold of ±0.03 was chosen deliberately — it equates to roughly 1 extra unit per month,
+        which is a meaningful change for a pharmacy product. Anything smaller is treated as noise.
+      </p>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="mb-8">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-8 h-8 rounded-full bg-green-100 text-green-700 text-sm font-bold flex items-center justify-center flex-shrink-0">3</div>
+        <h3 class="font-semibold text-gray-800 text-base">Projection <span class="font-normal text-gray-400 text-sm">(next 30 days)</span></h3>
+      </div>
+      <p class="text-gray-600 leading-relaxed mb-3 ml-11">
+        For each of the next 30 days, the model takes the trend line value for that day's index,
+        then re-multiplies it by the day-of-week multiplier for that specific day
+        (Monday gets ×1.6, Sunday gets ×0.4, etc.). The result is clamped to zero so the
+        forecast never predicts negative sales.
+      </p>
+      <div class="ml-11 bg-gray-900 text-green-400 font-mono text-sm rounded-lg p-4 mb-3">
+        predicted[day] = max(0, trend_value × multiplier[day_of_week])
+      </div>
+      <p class="text-gray-600 text-sm ml-11">
+        The <strong>7d, 14d, and 30d totals</strong> shown in the forecast table are simply the
+        sums of these daily predictions over each window.
+      </p>
+    </div>
+  </section>
+
+  <!-- Reorder logic -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Reorder Recommendation Logic</h2>
+    <p class="text-gray-600 leading-relaxed mb-4">
+      Once the forecast is calculated, the system compares it against current stock to decide
+      urgency and how much to order. Two constants are set in the code:
+    </p>
+    <div class="bg-gray-900 text-green-400 font-mono text-sm rounded-lg p-4 mb-5">
+      LEAD_TIME_DAYS = 3   <span class="text-gray-400"># days between placing an order and receiving stock</span><br/>
+      SAFETY_DAYS    = 7   <span class="text-gray-400"># extra buffer days to always keep in stock</span>
+    </div>
+
+    <div class="bg-gray-900 text-green-400 font-mono text-sm rounded-lg p-4 mb-5">
+      days_remaining = stock_qty ÷ avg_daily_sales<br/><br/>
+      reorder_qty    = (forecast_14d + avg_daily × SAFETY_DAYS) − stock_qty
+    </div>
+
+    <div class="grid grid-cols-2 gap-3 mb-4">
+      <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div class="font-semibold text-red-700 mb-1">Critical</div>
+        <div class="text-sm text-red-600">≤ 3 days of stock remaining</div>
+        <div class="text-xs text-red-400 mt-1">Less than lead time — order will arrive after stockout. Order immediately.</div>
+      </div>
+      <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+        <div class="font-semibold text-amber-700 mb-1">Urgent</div>
+        <div class="text-sm text-amber-600">4–10 days of stock remaining</div>
+        <div class="text-xs text-amber-400 mt-1">Within safety buffer window. Order within the next day or two.</div>
+      </div>
+      <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <div class="font-semibold text-yellow-700 mb-1">Soon</div>
+        <div class="text-sm text-yellow-600">11–14 days of stock remaining</div>
+        <div class="text-xs text-yellow-500 mt-1">Stock will last less than 2 weeks. Plan reorder this week.</div>
+      </div>
+      <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+        <div class="font-semibold text-green-700 mb-1">OK</div>
+        <div class="text-sm text-green-600">More than 14 days of stock</div>
+        <div class="text-xs text-green-500 mt-1">Stock is healthy. No action needed right now.</div>
+      </div>
+    </div>
+
+    <p class="text-gray-600 text-sm">
+      The <strong>reorder quantity</strong> formula targets having 14 days of forecasted demand
+      plus a 7-day safety buffer in stock — then subtracts what is already on the shelf.
+      This ensures enough stock arrives before the next order cycle.
+    </p>
+  </section>
+
+  <!-- Worked Example -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Worked Example — Paracetamol 500mg</h2>
+    <p class="text-gray-600 leading-relaxed mb-5">
+      Walking through all three steps and the reorder decision for a real product scenario.
+    </p>
+
+    <!-- Starting numbers -->
+    <div class="grid grid-cols-3 gap-4 mb-6">
+      <div class="bg-white border border-gray-200 rounded-lg p-4 text-center">
+        <div class="text-3xl font-bold text-gray-900">20</div>
+        <div class="text-xs text-gray-500 mt-1">Units in stock</div>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-lg p-4 text-center">
+        <div class="text-3xl font-bold text-gray-900">2.2</div>
+        <div class="text-xs text-gray-500 mt-1">Avg units / day (last 30d)</div>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-lg p-4 text-center">
+        <div class="text-3xl font-bold text-green-600">↑</div>
+        <div class="text-xs text-gray-500 mt-1">Trend (increasing)</div>
+      </div>
+    </div>
+
+    <div class="space-y-5">
+
+      <!-- Step 1 example -->
+      <div class="bg-white border border-gray-200 rounded-xl p-5">
+        <div class="text-sm font-semibold text-gray-700 mb-2">Step 1 — Seasonality multipliers</div>
+        <p class="text-sm text-gray-600 mb-3">
+          From 90 days of history, the overall daily average is <strong>2.2 units/day</strong>.
+        </p>
+        <div class="bg-gray-900 text-green-400 font-mono text-xs rounded-lg p-3">
+          Monday average  = 3.5 units  →  multiplier = 3.5 ÷ 2.2 = <strong>1.59</strong><br/>
+          Tuesday average = 2.8 units  →  multiplier = 2.8 ÷ 2.2 = <strong>1.27</strong><br/>
+          Wednesday avg   = 2.4 units  →  multiplier = 2.4 ÷ 2.2 = <strong>1.09</strong><br/>
+          Thursday avg    = 2.1 units  →  multiplier = 2.1 ÷ 2.2 = <strong>0.95</strong><br/>
+          Friday average  = 1.8 units  →  multiplier = 1.8 ÷ 2.2 = <strong>0.82</strong><br/>
+          Saturday avg    = 1.4 units  →  multiplier = 1.4 ÷ 2.2 = <strong>0.64</strong><br/>
+          Sunday average  = 0.9 units  →  multiplier = 0.9 ÷ 2.2 = <strong>0.41</strong>
+        </div>
+        <p class="text-xs text-gray-500 mt-3">
+          Monday sells 59% more than the weekly average. Sunday sells 59% less.
+          These multipliers are applied every time a future day is predicted.
+        </p>
+      </div>
+
+      <!-- Step 2 example -->
+      <div class="bg-white border border-gray-200 rounded-xl p-5">
+        <div class="text-sm font-semibold text-gray-700 mb-2">Step 2 — Trend (linear regression)</div>
+        <p class="text-sm text-gray-600 mb-3">
+          After dividing each of the last 30 days' sales by its day-of-week multiplier to remove
+          weekly noise, a straight line is fitted through the cleaned data.
+        </p>
+        <div class="bg-gray-900 text-green-400 font-mono text-xs rounded-lg p-3">
+          trend_slope = <strong>+0.04</strong> units/day<br/>
+          <br/>
+          Since 0.04 &gt; 0.03 → trend label = <strong>↑ Increasing</strong>
+        </div>
+        <p class="text-xs text-gray-500 mt-3">
+          +0.04 units/day means demand is growing by roughly 1.2 extra units per month.
+          Not explosive growth, but a consistent upward signal.
+        </p>
+      </div>
+
+      <!-- Step 3 example -->
+      <div class="bg-white border border-gray-200 rounded-xl p-5">
+        <div class="text-sm font-semibold text-gray-700 mb-2">Step 3 — Projection (next Monday as example)</div>
+        <p class="text-sm text-gray-600 mb-3">
+          To predict next Monday's sales, the model reads the trend value at that future day index,
+          then multiplies by the Monday multiplier.
+        </p>
+        <div class="bg-gray-900 text-green-400 font-mono text-xs rounded-lg p-3">
+          trend_value for next Monday  ≈  2.2 units  (from the fitted line)<br/>
+          × Monday multiplier (1.59)<br/>
+          = <strong>3.5 units predicted for that Monday</strong><br/>
+          <br/>
+          Repeating for all 14 days → 14-day total forecast = <strong>~32 units</strong>
+        </div>
+        <p class="text-xs text-gray-500 mt-3">
+          Each day of the 30-day window gets its own prediction this way.
+          The 7d, 14d, and 30d figures in the table are the running totals.
+        </p>
+      </div>
+
+      <!-- Reorder decision -->
+      <div class="bg-amber-50 border border-amber-200 rounded-xl p-5">
+        <div class="text-sm font-semibold text-amber-800 mb-3">Reorder Decision</div>
+        <div class="bg-white border border-amber-100 rounded-lg p-4 font-mono text-xs space-y-1 text-gray-700">
+          <p>days_remaining  = 20 ÷ 2.2  =  <strong>9.1 days</strong></p>
+          <p class="text-amber-700 font-bold">→ 9.1 is between 3 and 10  →  status = URGENT</p>
+          <p class="mt-2">reorder_qty = (forecast_14d + avg_daily × SAFETY_DAYS) − stock</p>
+          <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= (32 + 2.2 × 7) − 20</p>
+          <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= (32 + 15.4) − 20</p>
+          <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= <strong>27 units to order</strong></p>
+        </div>
+        <p class="text-xs text-amber-700 mt-3">
+          The 14-day forecast (32 units) covers demand during the lead time + safety buffer
+          (3 + 7 = 10 days). Ordering 27 units tops stock up to a comfortable level without
+          over-ordering.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Where this runs -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Where This Runs in the System</h2>
+    <div class="space-y-3">
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="text-sm font-semibold text-gray-700 mb-1">Forecast page — <code class="bg-gray-100 px-1 rounded">/forecast</code></div>
+        <p class="text-xs text-gray-500">Runs <code class="bg-gray-100 px-1 rounded">all_product_forecasts()</code> for every product on every page load. Shows the full table with urgency, days remaining, trend arrows, and reorder quantities. Includes WhatsApp buttons to send reorder messages to suppliers.</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="text-sm font-semibold text-gray-700 mb-1">Automated WhatsApp summary — every Monday at 08:00</div>
+        <p class="text-xs text-gray-500">APScheduler triggers <code class="bg-gray-100 px-1 rounded">weekly_reorder_summary()</code> which calls the forecast, builds a summary message, and sends it via Twilio WhatsApp to the pharmacist's number. Covers all Critical / Urgent / Soon products in one message.</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="text-sm font-semibold text-gray-700 mb-1">Chart modal — individual product view</div>
+        <p class="text-xs text-gray-500">Clicking "View Chart" on any row calls <code class="bg-gray-100 px-1 rounded">/api/product-forecast/&lt;id&gt;</code>, which runs <code class="bg-gray-100 px-1 rounded">forecast_product()</code> for that single product and returns the daily arrays for Chart.js to render the 30-day actual + 14-day forecast line chart.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Limitations -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Limitations and Known Gaps</h2>
+    <ul class="space-y-3 text-gray-600 text-sm">
+      <li class="flex gap-2">
+        <span class="text-red-500 font-bold flex-shrink-0">✗</span>
+        <span><strong>No holiday awareness.</strong> The model treats public holidays (Genocide Memorial Day, Independence Day, Christmas) like any other day. A Monday that is also a holiday will still get the Monday multiplier, which will overestimate sales.</span>
+      </li>
+      <li class="flex gap-2">
+        <span class="text-red-500 font-bold flex-shrink-0">✗</span>
+        <span><strong>No supplier stockout memory.</strong> If a product ran out of stock last month, those days show zero sales — not because demand was zero, but because there was nothing to sell. This suppresses the average and underestimates reorder quantities for products that stockout often.</span>
+      </li>
+      <li class="flex gap-2">
+        <span class="text-red-500 font-bold flex-shrink-0">✗</span>
+        <span><strong>New products have no history.</strong> Products added recently (fewer than 30 days of data) get unreliable trend estimates. The forecast still runs but should be treated with caution.</span>
+      </li>
+      <li class="flex gap-2">
+        <span class="text-red-500 font-bold flex-shrink-0">✗</span>
+        <span><strong>Trend extrapolation only.</strong> The model cannot predict a sudden spike (e.g. a flu season, a community event nearby). Treat the forecast as a baseline, not a guarantee.</span>
+      </li>
+      <li class="flex gap-2">
+        <span class="text-green-600 font-bold flex-shrink-0">→</span>
+        <span><strong>Recommendation:</strong> Use the reorder quantities as a starting point. Adjust up or down based on your knowledge of upcoming events, supplier reliability, and product expiry dates.</span>
+      </li>
+    </ul>
+  </section>
+
+  <!-- Files -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">Files Involved</h2>
+    <div class="bg-gray-900 text-green-400 font-mono text-sm rounded-lg p-5 space-y-1">
+      <div>tramed/forecasting.py        <span class="text-gray-400"># core algorithm — all functions</span></div>
+      <div>tramed/retention.py          <span class="text-gray-400"># WhatsApp message builders (uses forecasting)</span></div>
+      <div>tramed/app.py                <span class="text-gray-400"># /forecast route + weekly scheduler job</span></div>
+      <div>tramed/templates/forecast.html  <span class="text-gray-400"># the page rendered in the browser</span></div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <div class="mt-12 pt-6 border-t border-gray-200 text-xs text-gray-400 flex justify-between">
+    <span>Pharmacie Tramed · Kigali, Rwanda</span>
+    <span>June 2026 · CS Internship Build Notes</span>
+  </div>
+
+</div>
+</body>
+</html>

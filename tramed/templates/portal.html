@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Account — Pharmacie Tramed</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50:"#f0fdf4", 100:"#dcfce7", 500:"#22c55e", 600:"#16a34a", 700:"#15803d", 900:"#14532d" }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+  <!-- Top bar -->
+  <header class="bg-brand-900 text-white px-4 py-4 flex items-center justify-between">
+    <div>
+      <div class="text-xs text-brand-300">Pharmacie Tramed</div>
+      <div class="font-semibold text-base">{{ customer.name }}</div>
+    </div>
+    <a href="/portal" class="text-xs text-brand-300 hover:text-white border border-brand-700 px-3 py-1.5 rounded-lg transition">
+      Sign out
+    </a>
+  </header>
+
+  <div class="max-w-lg mx-auto px-4 py-6 space-y-5">
+
+    <!-- Loyalty card (if available) -->
+    {% if loyalty %}
+    <div class="rounded-2xl p-5
+      {% if loyalty.tier == 'gold' %}bg-amber-500
+      {% elif loyalty.tier == 'silver' %}bg-gray-400
+      {% else %}bg-amber-700{% endif %} text-white shadow">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-xs font-bold uppercase tracking-widest opacity-80">
+          {{ loyalty.tier|capitalize }} Member
+        </span>
+        <svg class="w-6 h-6 opacity-60" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
+      </div>
+      <div class="text-3xl font-bold">{{ loyalty.points_balance }} pts</div>
+      <div class="text-xs opacity-75 mt-1">{{ loyalty.lifetime_points }} lifetime points earned</div>
+    </div>
+    {% endif %}
+
+    <!-- Upcoming refills -->
+    {% set active_schedules = customer.schedules|selectattr('active')|list %}
+    {% if active_schedules %}
+    <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+      <div class="px-4 py-3 border-b border-gray-100">
+        <h2 class="text-sm font-semibold text-gray-800">Upcoming Refills</h2>
+      </div>
+      <div class="divide-y divide-gray-50">
+        {% for s in active_schedules|sort(attribute='next_reminder_date') %}
+        {% set is_due = s.next_reminder_date and s.next_reminder_date <= today %}
+        {% set is_soon = s.next_reminder_date and s.next_reminder_date > today and (s.next_reminder_date - today).days <= 7 %}
+        <div class="px-4 py-3 flex items-center justify-between">
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-medium text-gray-800 truncate">{{ s.product.name }}</div>
+            <div class="text-xs text-gray-500 mt-0.5">
+              Every {{ s.interval_days }} days
+              {% if s.last_purchase_date %}· Last filled {{ s.last_purchase_date.strftime('%d %b') }}{% endif %}
+            </div>
+          </div>
+          <div class="ml-3 text-right flex-shrink-0">
+            {% if is_due %}
+            <a href="/portal/{{ customer.id }}/shop/{{ s.product.id }}"
+               class="inline-block bg-red-100 text-red-600 text-xs font-semibold px-2 py-1 rounded-full hover:bg-red-200 transition">Refill now</a>
+            {% elif is_soon %}
+            <span class="inline-block bg-amber-100 text-amber-700 text-xs font-medium px-2 py-1 rounded-full">
+              In {{ (s.next_reminder_date - today).days }} days
+            </span>
+            {% elif s.next_reminder_date %}
+            <span class="text-xs text-gray-400">{{ s.next_reminder_date.strftime('%d %b') }}</span>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% else %}
+    <div class="bg-white rounded-2xl border border-gray-200 px-4 py-6 text-center">
+      <div class="text-sm text-gray-400">No medication schedules on file.</div>
+      <div class="text-xs text-gray-400 mt-1">Ask pharmacy staff to add one for you.</div>
+    </div>
+    {% endif %}
+
+    <!-- Purchase history -->
+    {% if sales %}
+    <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+      <div class="px-4 py-3 border-b border-gray-100">
+        <h2 class="text-sm font-semibold text-gray-800">Purchase History</h2>
+      </div>
+      <div class="divide-y divide-gray-50">
+        {% for sale in sales[:15] %}
+        <div class="px-4 py-3 flex items-start justify-between">
+          <div class="flex-1 min-w-0">
+            <div class="text-xs text-gray-400">{{ sale.created_at.strftime('%d %b %Y') }}</div>
+            <div class="text-sm text-gray-700 mt-0.5 truncate">
+              {% for item in sale.items %}{{ item.product.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+            </div>
+          </div>
+          <div class="ml-3 text-sm font-semibold text-gray-800 whitespace-nowrap flex-shrink-0">
+            {{ "{:,}".format(sale.total_amount|int) }} RWF
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% if sales|length > 15 %}
+      <div class="px-4 py-3 text-center text-xs text-gray-400">
+        Showing last 15 purchases
+      </div>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-2xl border border-gray-200 px-4 py-6 text-center">
+      <div class="text-sm text-gray-400">No purchases linked to this account yet.</div>
+    </div>
+    {% endif %}
+
+    <!-- Footer -->
+    <div class="text-center text-xs text-gray-400 pb-4">
+      Pharmacie Tramed · KN 151 St, Kigali<br>
+      <a href="https://wa.me/{{ customer.whatsapp_number }}" class="underline mt-1 inline-block">Contact us on WhatsApp</a>
+    </div>
+
+  </div>
+
+</body>
+</html>
